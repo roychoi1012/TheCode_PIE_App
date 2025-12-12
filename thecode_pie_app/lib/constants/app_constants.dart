@@ -1,19 +1,26 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 /// 앱 전역 상수
 class AppConstants {
   // 앱 정보
   static const String appName = 'The Code PIE';
   static const String appVersion = '1.0.0';
 
-  // API 설정 (개발 환경)
-  static const String baseUrl = 'http://localhost:8000'; // Django 백엔드 URL
+  // Google OAuth 설정 (환경변수에서 읽기)
+  static String get googleClientId => dotenv.env['GOOGLE_CLIENT_ID'] ?? '';
+  static String get googleClientSecret =>
+      dotenv.env['GOOGLE_CLIENT_SECRET'] ?? '';
+
+  // API 설정 (환경변수에서 읽기)
+  static String get baseUrl =>
+      dotenv.env['DJANGO_BASE_URL'] ?? 'http://localhost:8000';
   static const String apiVersion = '/api/v1';
 
   // API 엔드포인트
-  static const String googleLoginEndpoint =
-      '$baseUrl$apiVersion/auth/google-login/';
-  static const String refreshTokenEndpoint =
-      '$baseUrl$apiVersion/auth/refresh/';
-  static const String logoutEndpoint = '$baseUrl$apiVersion/auth/logout/';
+  static String get googleLoginEndpoint =>
+      '$baseUrl$apiVersion/auth/google/callback/';
+  static String get refreshTokenEndpoint => '$baseUrl$apiVersion/auth/refresh/';
+  static String get logoutEndpoint => '$baseUrl$apiVersion/auth/logout/';
 
   // 로컬 스토리지 키
   static const String tokenKey = 'auth_token';
