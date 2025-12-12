@@ -165,6 +165,15 @@ class LoginScreen extends StatelessWidget {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('로그인이 취소되었습니다.')));
+      } else {
+        // 에러가 발생한 경우
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('로그인 실패: ${viewModel.errorMessage}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
       }
     }
   }
