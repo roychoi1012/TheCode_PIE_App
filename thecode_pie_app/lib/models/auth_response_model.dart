@@ -1,26 +1,44 @@
 import 'user_model.dart';
 
-/// 인증 응답 모델
+/// 인증 응답 모델 (Django 응답 형식)
 class AuthResponseModel {
-  final String token;
+  final bool success;
+  final String message;
+  final String accessToken;
+  final String refreshToken;
   final UserModel user;
-  final bool created; // 새로 생성된 사용자인지 여부
 
   AuthResponseModel({
-    required this.token,
+    required this.success,
+    required this.message,
+    required this.accessToken,
+    required this.refreshToken,
     required this.user,
-    required this.created,
   });
 
   factory AuthResponseModel.fromJson(Map<String, dynamic> json) {
+    // Django 응답 형식: { "success": true, "data": { ... } }
+    final data = json['data'] as Map<String, dynamic>;
+
     return AuthResponseModel(
-      token: json['token'] as String,
-      user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
-      created: json['created'] as bool? ?? false,
+      success: json['success'] as bool? ?? false,
+      message: data['message'] as String? ?? '',
+      accessToken: data['access_token'] as String,
+      refreshToken: data['refresh_token'] as String,
+      user: UserModel.fromJson(data['user'] as Map<String, dynamic>),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'token': token, 'user': user.toJson(), 'created': created};
+    return {
+      'success': success,
+      'message': message,
+      'access_token': accessToken,
+      'refresh_token': refreshToken,
+      'user': user.toJson(),
+    };
   }
+
+  // 하위 호환성을 위한 getter (기존 코드에서 token으로 접근 가능하도록)
+  String get token => accessToken;
 }
