@@ -7,9 +7,8 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // Google OAuth 설정 (환경변수에서 읽기)
-  static String get googleClientId => dotenv.env['GOOGLE_CLIENT_ID'] ?? '';
-  static String get googleClientSecret =>
-      dotenv.env['GOOGLE_CLIENT_SECRET'] ?? '';
+  static String get googleServerClientId  =>
+      dotenv.env['SERVER_CLIENT_ID'] ?? '';
 
   // API 설정 (환경변수에서 읽기)
   static String get baseUrl =>

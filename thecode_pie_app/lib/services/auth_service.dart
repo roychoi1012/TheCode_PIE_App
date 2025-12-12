@@ -10,21 +10,10 @@ import '../models/user_model.dart';
 /// 인증 서비스 (API 호출 담당)
 class AuthService {
   GoogleSignIn get _googleSignIn {
-    final clientId = AppConstants.googleClientId;
-
-    // Android에서는 serverClientId가 필요합니다 (Web 클라이언트 ID)
-    // 이는 OAuth 2.0 서버 측 인증을 위한 것입니다
-    if (clientId.isNotEmpty) {
-      return GoogleSignIn(
-        scopes: ['email', 'profile'],
-        // Android: serverClientId는 Web 클라이언트 ID를 사용
-        // iOS: 자동으로 Info.plist에서 읽어옵니다
-        serverClientId: clientId,
-      );
-    }
-
-    // 클라이언트 ID가 없으면 기본 설정 사용
-    return GoogleSignIn(scopes: ['email', 'profile']);
+    return GoogleSignIn(
+      scopes: ['email', 'profile'],
+      serverClientId: AppConstants.googleServerClientId, // 🔥 이것만
+    );
   }
 
   /// 구글 로그인 수행
@@ -155,5 +144,28 @@ class AuthService {
   Future<void> _saveUserData(UserModel user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(AppConstants.userDataKey, jsonEncode(user.toJson()));
+  }
+
+
+  Future<String?> getGoogleIdTokenOnly() async {
+    await _googleSignIn.signOut();
+
+    final GoogleSignInAccount? googleUser =
+        await _googleSignIn.signIn();
+
+    if (googleUser == null) {
+      return null;
+    }
+
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+
+    final String? idToken = googleAuth.idToken;
+
+    if (idToken == null) {
+      throw Exception('ID Token을 가져오지 못했습니다.');
+    }
+
+    return idToken;
   }
 }

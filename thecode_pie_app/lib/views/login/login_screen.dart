@@ -89,7 +89,8 @@ class LoginScreen extends StatelessWidget {
                                     child: GoogleLoginButton(
                                       onPressed: viewModel.isLoading
                                           ? null
-                                          : () => _handleGoogleLogin(
+                                          // : () => _handleGoogleLogin(
+                                          : () => _handleGoogleLoginForTest(
                                               context,
                                               viewModel,
                                             ),
@@ -127,6 +128,41 @@ class LoginScreen extends StatelessWidget {
                                       ),
                                     ),
                                   ],
+
+                                  if (viewModel.idToken != null) ...[
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'ID TOKEN (앞 120자)',
+                                      style: GoogleFonts.pressStart2p(
+                                        fontSize: 8,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.35),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: AppColors.neonPurple.withOpacity(0.6),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        viewModel.idToken!.substring(
+                                          0,
+                                          viewModel.idToken!.length > 120
+                                              ? 120
+                                              : viewModel.idToken!.length,
+                                        ),
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.greenAccent,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             );
@@ -142,6 +178,22 @@ class LoginScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+
+  Future<void> _handleGoogleLoginForTest(
+    BuildContext context,
+    AuthViewModel viewModel,
+  ) async {
+    final success = await viewModel.signInWithGoogleForTest();
+
+    if (!context.mounted) return;
+
+    if (!success && viewModel.errorMessage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인이 취소되었습니다.')),
+      );
+    }
   }
 
   Future<void> _handleGoogleLogin(
