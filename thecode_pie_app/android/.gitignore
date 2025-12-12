@@ -1,8 +1,10 @@
-gradle-wrapper.jar
+# Gradle wrapper files should be committed to version control
+# gradle-wrapper.jar
+# /gradlew
+# /gradlew.bat
+
 /.gradle
 /captures/
-/gradlew
-/gradlew.bat
 /local.properties
 GeneratedPluginRegistrant.java
 .cxx/
