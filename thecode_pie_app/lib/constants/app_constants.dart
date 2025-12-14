@@ -7,9 +7,24 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // Google OAuth 설정 (환경변수에서 읽기)
-  static String get googleClientId => dotenv.env['GOOGLE_CLIENT_ID'] ?? '';
-  static String get googleClientSecret =>
-      dotenv.env['GOOGLE_CLIENT_SECRET'] ?? '';
+  // Android 클라이언트 ID: Google Play Services 연결용 (SHA-1 지문으로 인증)
+  static String get googleAndroidClientId =>
+      dotenv.env['GOOGLE_ANDROID_CLIENT_ID'] ?? '';
+
+  // Web 클라이언트 ID: Django 서버 인증용 (serverClientId로 사용)
+  static String get googleWebClientId =>
+      dotenv.env['GOOGLE_WEB_CLIENT_ID'] ?? '';
+
+  // Web 클라이언트 Secret: Django 서버에서 ID 토큰 검증용
+  static String get googleWebClientSecret =>
+      dotenv.env['GOOGLE_WEB_CLIENT_SECRET'] ?? '';
+
+  // 하위 호환성을 위한 getter (Android 클라이언트 ID 반환)
+  @Deprecated('Use googleAndroidClientId instead')
+  static String get googleClientId => googleAndroidClientId;
+
+  @Deprecated('Use googleWebClientSecret instead')
+  static String get googleClientSecret => googleWebClientSecret;
 
   // API 설정 (환경변수에서 읽기)
   static String get baseUrl =>
