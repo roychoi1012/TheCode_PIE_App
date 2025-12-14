@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "576552375806",
+    "project_id": "the-code-480902",
+    "storage_bucket": "the-code-480902.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:576552375806:android:afd36fffea4b0052a75caf",
+        "android_client_info": {
+          "package_name": "com.clavis.thecodepie"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "576552375806-70gg1ohb5u1sg84kbg4advpfstpsb0ob.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9VHnz_jVYM9fsxB2g0x2D7TbGw6b-U7U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "576552375806-70gg1ohb5u1sg84kbg4advpfstpsb0ob.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
