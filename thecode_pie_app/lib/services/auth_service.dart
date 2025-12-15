@@ -9,12 +9,11 @@ import '../models/user_model.dart';
 
 /// 인증 서비스 (Google 로그인 + Django API 연동)
 class AuthService {
-  GoogleSignIn get _googleSignIn {
-    return GoogleSignIn(
-      scopes: ['email', 'profile'],
-      serverClientId: AppConstants.googleServerClientId, // WEB client_id
-    );
-  }
+  // 단일 인스턴스 유지로 세션 상태 보존
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+    serverClientId: AppConstants.googleServerClientId, // WEB client_id
+  );
 
   /// Google 로그인 + 서버 인증
   Future<AuthResponseModel?> signInWithGoogle() async {
@@ -35,17 +34,13 @@ class AuthService {
       }
 
       // 3. Django API 호출 (id_token만 전송)
-      final response = await http.post(
-        Uri.parse(
-          '${AppConstants.baseUrl}/api/v1/auth/google/login/',
-        ),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'id_token': idToken,
-        }),
-      ).timeout(AppConstants.connectTimeout);
+      final response = await http
+          .post(
+            Uri.parse(AppConstants.googleLoginEndpoint),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'id_token': idToken}),
+          )
+          .timeout(AppConstants.connectTimeout);
 
       if (response.statusCode != 200) {
         throw Exception('서버 응답 오류 (${response.statusCode})');
@@ -54,9 +49,7 @@ class AuthService {
       final responseData = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (responseData['success'] != true || responseData['data'] == null) {
-        throw Exception(
-          responseData['data']?['global'] ?? '로그인에 실패했습니다.',
-        );
+        throw Exception(responseData['data']?['global'] ?? '로그인에 실패했습니다.');
       }
 
       final authResponse = AuthResponseModel.fromJson(responseData);
@@ -116,9 +109,6 @@ class AuthService {
 
   Future<void> _saveUserData(UserModel user) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      AppConstants.userDataKey,
-      jsonEncode(user.toJson()),
-    );
+    await prefs.setString(AppConstants.userDataKey, jsonEncode(user.toJson()));
   }
 }

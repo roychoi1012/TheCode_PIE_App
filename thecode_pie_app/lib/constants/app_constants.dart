@@ -7,7 +7,7 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // Google OAuth 설정 (환경변수에서 읽기)
-  static String get googleServerClientId  =>
+  static String get googleServerClientId =>
       dotenv.env['SERVER_CLIENT_ID'] ?? '';
 
   // API 설정 (환경변수에서 읽기)
@@ -17,7 +17,7 @@ class AppConstants {
 
   // API 엔드포인트
   static String get googleLoginEndpoint =>
-      '$baseUrl$apiVersion/auth/google/callback/';
+      '$baseUrl$apiVersion/auth/google/login/';
   static String get refreshTokenEndpoint => '$baseUrl$apiVersion/auth/refresh/';
   static String get logoutEndpoint => '$baseUrl$apiVersion/auth/logout/';
 
