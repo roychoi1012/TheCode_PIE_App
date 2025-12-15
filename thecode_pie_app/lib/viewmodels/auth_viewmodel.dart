@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 
-/// 인증 ViewModel (상태 관리 및 비즈니스 로직)
+/// 인증 ViewModel (UI 상태 + 로그인 결과 관리)
 class AuthViewModel extends ChangeNotifier {
   final AuthService _authService = AuthService();
 
@@ -16,26 +16,28 @@ class AuthViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _currentUser != null;
 
-  /// 구글 로그인
+  // Google 로그인
   Future<bool> signInWithGoogle() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final response = await _authService.signInWithGoogle();
+      final authResponse = await _authService.signInWithGoogle();
 
-      if (response != null) {
-        _currentUser = response.user;
-        _isLoading = false;
-        _errorMessage = null;
-        notifyListeners();
-        return true;
-      } else {
+      // 사용자가 로그인 취소
+      if (authResponse == null) {
         _isLoading = false;
         notifyListeners();
         return false;
       }
+
+      // 서버 인증 성공
+      _currentUser = authResponse.user;
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
     } catch (e) {
       _isLoading = false;
       _errorMessage = e.toString();
@@ -44,7 +46,7 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  /// 로그아웃
+  // 로그아웃
   Future<void> signOut() async {
     _isLoading = true;
     notifyListeners();
@@ -62,7 +64,7 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  /// 에러 초기화
+  // 에러 초기화
   void clearError() {
     _errorMessage = null;
     notifyListeners();

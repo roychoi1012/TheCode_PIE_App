@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 인터넷 권한 (API 호출용) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    
     <application
         android:label="thecode_pie_app"
         android:name="${applicationName}"

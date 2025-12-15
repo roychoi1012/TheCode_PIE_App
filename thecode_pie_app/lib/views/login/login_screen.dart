@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+
 import '../../constants/app_constants.dart';
 import '../../constants/app_colors.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/retro_background.dart';
 import '../../widgets/retro_glass_card.dart';
 import '../../widgets/google_login_button.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 
-/// 로그인 화면 (View)
+/// 로그인 화면 (최종본)
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
@@ -34,6 +36,7 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+
                 // 메인 컨텐츠
                 Center(
                   child: SingleChildScrollView(
@@ -70,6 +73,7 @@ class LoginScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 48),
+
                         Consumer<AuthViewModel>(
                           builder: (context, viewModel, child) {
                             return RetroGlassCard(
@@ -85,17 +89,17 @@ class LoginScreen extends StatelessWidget {
                                     textAlign: TextAlign.center,
                                   ),
                                   const SizedBox(height: 32),
+
                                   Center(
                                     child: GoogleLoginButton(
                                       onPressed: viewModel.isLoading
                                           ? null
-                                          : () => _handleGoogleLogin(
-                                              context,
-                                              viewModel,
-                                            ),
+                                          : () =>
+                                              _handleGoogleLogin(context, viewModel),
                                       isLoading: viewModel.isLoading,
                                     ),
                                   ),
+
                                   const SizedBox(height: 20),
                                   Text(
                                     '구글 아이콘을 눌러\n로그인하세요',
@@ -106,6 +110,108 @@ class LoginScreen extends StatelessWidget {
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
+                                  if (viewModel.isAuthenticated && viewModel.currentUser != null) ...[
+                                    const SizedBox(height: 20),
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.35),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: AppColors.neonPurple.withOpacity(0.6),
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'LOGIN RESULT',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.greenAccent,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            'ID: ${viewModel.currentUser!.id}',
+                                            style: const TextStyle(color: Colors.greenAccent),
+                                          ),
+                                          Text(
+                                            'EMAIL: ${viewModel.currentUser!.email}',
+                                            style: const TextStyle(color: Colors.greenAccent),
+                                          ),
+                                          Text(
+                                            'USERNAME: ${viewModel.currentUser!.username}',
+                                            style: const TextStyle(color: Colors.greenAccent),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  if (viewModel.isAuthenticated) ...[
+                                    const SizedBox(height: 20),
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.35),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: AppColors.neonPurple.withOpacity(0.6),
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'TOKEN DEBUG',
+                                            style: GoogleFonts.pressStart2p(
+                                              fontSize: 8,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          FutureBuilder<String?>(
+                                            future: AuthService().getAccessToken(),
+                                            builder: (context, snapshot) {
+                                              if (!snapshot.hasData) {
+                                                return const Text(
+                                                  'ACCESS TOKEN: (loading)',
+                                                  style: TextStyle(color: Colors.greenAccent, fontSize: 10),
+                                                );
+                                              }
+                                              return Text(
+                                                'ACCESS TOKEN:\n${snapshot.data}',
+                                                style: const TextStyle(
+                                                  color: Colors.greenAccent,
+                                                  fontSize: 10,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                          const SizedBox(height: 8),
+                                          FutureBuilder<String?>(
+                                            future: AuthService().getRefreshToken(),
+                                            builder: (context, snapshot) {
+                                              if (!snapshot.hasData) {
+                                                return const Text(
+                                                  'REFRESH TOKEN: (loading)',
+                                                  style: TextStyle(color: Colors.greenAccent, fontSize: 10),
+                                                );
+                                              }
+                                              return Text(
+                                                'REFRESH TOKEN:\n${snapshot.data}',
+                                                style: const TextStyle(
+                                                  color: Colors.greenAccent,
+                                                  fontSize: 10,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                  // 에러 메시지
                                   if (viewModel.errorMessage != null) ...[
                                     const SizedBox(height: 16),
                                     Container(
@@ -144,28 +250,28 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
+  /// 실제 Google 로그인 처리
   Future<void> _handleGoogleLogin(
     BuildContext context,
     AuthViewModel viewModel,
   ) async {
     final success = await viewModel.signInWithGoogle();
 
-    if (context.mounted) {
-      if (success) {
-        // 로그인 성공 시 홈 화면으로 이동 (추후 구현)
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('로그인 성공!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        // Navigator.pushReplacement(...) 홈 화면으로 이동
-      } else if (viewModel.errorMessage == null) {
-        // 사용자가 취소한 경우
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('로그인이 취소되었습니다.')));
-      }
+    if (!context.mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('로그인 성공!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+    } else if (viewModel.errorMessage == null) {
+      // 사용자가 로그인 취소
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('로그인이 취소되었습니다.')),
+      );
     }
   }
 }
