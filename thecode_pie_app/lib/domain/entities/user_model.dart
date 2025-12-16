@@ -1,4 +1,4 @@
-/// 사용자 모델
+/// 사용자 모델 (Entity)
 class UserModel {
   final int id;
   final String email;

@@ -15,7 +15,7 @@ class AppTheme {
         ),
       ),
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.neonPurple,
+        seedColor: AppColors.accentOrange,
         brightness: Brightness.dark,
         background: AppColors.darkBackground,
       ),

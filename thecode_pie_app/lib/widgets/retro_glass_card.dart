@@ -19,12 +19,12 @@ class RetroGlassCard extends StatelessWidget {
           color: AppColors.glassCardBorder.withOpacity(0.45),
           width: 1.4,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x80121A3D),
+            color: AppColors.accentOrangeShadow,
             blurRadius: 18,
             spreadRadius: 2,
-            offset: Offset(0, 10),
+            offset: const Offset(0, 10),
           ),
         ],
       ),

@@ -38,12 +38,12 @@ class RetroBackground extends StatelessWidget {
         Positioned(
           top: 80,
           left: -40,
-          child: _GlowCircle(color: AppColors.glowPurple),
+          child: _GlowCircle(color: AppColors.glowOrange),
         ),
         Positioned(
           bottom: 120,
           right: -50,
-          child: _GlowCircle(color: AppColors.glowCyan),
+          child: _GlowCircle(color: AppColors.glowCream),
         ),
       ],
     );
