@@ -48,16 +48,6 @@ class AuthViewModel extends ChangeNotifier {
       // 서버 인증 성공
       _currentUser = authResponse.user;
 
-      // 로그인 성공 후 Access Token 유효성 확인 (auth/me 호출)
-      debugPrint('로그인 성공 후 Access Token 유효성 확인 시작');
-      try {
-        await loadCurrentUser();
-        debugPrint('✅ 로그인 후 Access Token 유효성 확인 성공');
-      } catch (e) {
-        debugPrint('⚠️ 로그인 후 Access Token 유효성 확인 실패: $e');
-        // 유효성 확인 실패해도 로그인은 성공한 상태이므로 계속 진행
-      }
-
       _isLoading = false;
       notifyListeners();
       return true;
@@ -88,24 +78,57 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   /// 현재 사용자 정보 조회 (auth/me를 통해 Access Token 유효성 확인)
+  ///
+  /// Access Token이 만료된 경우 자동으로 Refresh Token으로 재발급 후 재시도
+  /// Refresh Token도 만료된 경우 _currentUser를 null로 설정하여 로그인 화면으로 이동
   Future<void> loadCurrentUser() async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
-      debugPrint('loadCurrentUser 시작 - Access Token 유효성 확인');
+      debugPrint('=== loadCurrentUser 시작 - auth/me 호출 ===');
+      debugPrint('Access Token 유효성 확인 중...');
+
       final user = await _getCurrentUserUseCase();
-      _currentUser = user;
-      _errorMessage = null;
-      debugPrint('✅ Access Token 유효성 확인 성공 - 사용자: ${user?.email}');
+
+      if (user != null) {
+        _currentUser = user;
+        _errorMessage = null;
+        debugPrint('✅ Access Token 유효성 확인 성공 - 사용자: ${user.email}');
+      } else {
+        // 사용자 정보가 null인 경우 (토큰이 만료되었거나 유효하지 않음)
+        debugPrint('⚠️ 사용자 정보가 null입니다. 로그인 화면으로 이동합니다.');
+        _currentUser = null;
+        _errorMessage = '토큰이 만료되었습니다. 다시 로그인해주세요.';
+      }
     } catch (e) {
       debugPrint('❌ Access Token 유효성 확인 실패: $e');
-      _errorMessage = e.toString();
-      // 토큰이 유효하지 않으면 현재 사용자 정보 초기화
-      _currentUser = null;
+
+      // Refresh Token도 만료된 경우를 확인
+      final errorString = e.toString().toLowerCase();
+      final isRefreshTokenExpired =
+          errorString.contains('refresh_token_expired') ||
+          errorString.contains('토큰 갱신 실패') ||
+          errorString.contains('만료') ||
+          errorString.contains('expired') ||
+          errorString.contains('400') ||
+          errorString.contains('다시 로그인') ||
+          errorString.contains('유효하지 않은 refresh token');
+
+      if (isRefreshTokenExpired) {
+        debugPrint('⚠️ Refresh Token도 만료되었습니다. 로그인 화면으로 이동합니다.');
+        _currentUser = null;
+        _errorMessage = '토큰이 만료되었습니다. 다시 로그인해주세요.';
+      } else {
+        _errorMessage = e.toString();
+        // 다른 에러의 경우에도 사용자 정보 초기화 (보안상 안전)
+        _currentUser = null;
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
+      debugPrint('=== loadCurrentUser 완료 ===');
     }
   }
 

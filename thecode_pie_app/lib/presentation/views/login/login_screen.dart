@@ -181,18 +181,12 @@ class LoginScreen extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 32),
                                     ElevatedButton(
-                                      onPressed: () {
-                                        // TODO: 메인 화면으로 이동
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('START 버튼이 눌렸습니다!'),
-                                            backgroundColor:
-                                                AppColors.accentOrange,
-                                          ),
-                                        );
-                                      },
+                                      onPressed: viewModel.isLoading
+                                          ? null
+                                          : () => _handleStartButton(
+                                              context,
+                                              viewModel,
+                                            ),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppColors.accentOrange,
                                         foregroundColor: AppColors.textPrimary,
@@ -278,6 +272,54 @@ class LoginScreen extends StatelessWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('로그인이 취소되었습니다.')));
+    }
+  }
+
+  /// START 버튼 처리 (auth/me 호출하여 Access Token 유효성 확인)
+  Future<void> _handleStartButton(
+    BuildContext context,
+    AuthViewModel viewModel,
+  ) async {
+    try {
+      // auth/me를 호출하여 Access Token 유효성 확인
+      // 만료된 경우 자동으로 Refresh Token으로 재발급 후 재시도
+      await viewModel.loadCurrentUser();
+
+      if (!context.mounted) return;
+
+      if (viewModel.currentUser != null) {
+        // Access Token이 유효한 경우
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Access Token 유효성 확인 완료!\n사용자: ${viewModel.currentUser!.email}',
+            ),
+            backgroundColor: AppColors.accentOrange,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        // TODO: 메인 화면으로 이동
+      } else {
+        // Refresh Token도 만료되어 로그인 화면으로 돌아온 경우
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('토큰이 만료되었습니다. 다시 로그인해주세요.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+
+      // 에러 발생 시 (Refresh Token 만료 등)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('오류 발생: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 

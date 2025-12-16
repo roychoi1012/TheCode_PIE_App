@@ -242,9 +242,13 @@ class AuthRepositoryImpl implements AuthRepository {
 
           // Refresh Token이 만료된 경우 로컬 토큰 삭제
           final errorString = refreshError.toString().toLowerCase();
-          if (errorString.contains('만료') ||
+          final isRefreshTokenExpired =
+              errorString.contains('만료') ||
               errorString.contains('expired') ||
-              errorString.contains('400')) {
+              errorString.contains('400') ||
+              errorString.contains('유효하지 않은 refresh token');
+
+          if (isRefreshTokenExpired) {
             debugPrint('⚠️ Refresh Token이 만료되었습니다. 로컬 토큰 삭제 중...');
             try {
               await _localDataSource.deleteAccessToken();
@@ -254,6 +258,11 @@ class AuthRepositoryImpl implements AuthRepository {
             } catch (deleteError) {
               debugPrint('토큰 삭제 중 오류: $deleteError');
             }
+
+            // Refresh Token 만료를 명확히 표시하는 예외 던지기
+            throw Exception(
+              'REFRESH_TOKEN_EXPIRED: Refresh Token이 만료되었습니다. 다시 로그인해주세요.',
+            );
           }
 
           throw Exception('토큰 갱신 실패: $refreshError. 다시 로그인해주세요.');
