@@ -8,6 +8,7 @@ import '../../domain/entities/user_model.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
 import '../datasources/auth_local_datasource.dart';
+import '../exceptions/auth_exception.dart';
 
 /// 인증 Repository 구현체
 class AuthRepositoryImpl implements AuthRepository {
@@ -126,6 +127,10 @@ class AuthRepositoryImpl implements AuthRepository {
 
       debugPrint('refreshAccessToken 완료');
       return newAccessToken;
+    } on AuthException catch (e) {
+      // Remote datasource에서 온 구조화된 예외(statusCode 등)를 보존한다.
+      debugPrint('refreshAccessToken AuthException: $e');
+      rethrow;
     } catch (e) {
       debugPrint('refreshAccessToken 오류: $e');
       throw Exception('토큰 갱신 오류: $e');
@@ -240,13 +245,9 @@ class AuthRepositoryImpl implements AuthRepository {
         } catch (refreshError) {
           debugPrint('❌ 토큰 갱신 실패: $refreshError');
 
-          // Refresh Token이 만료된 경우 로컬 토큰 삭제
-          final errorString = refreshError.toString().toLowerCase();
+          // Refresh Token이 만료/유효하지 않은 경우(일반적으로 400) 로컬 토큰 삭제
           final isRefreshTokenExpired =
-              errorString.contains('만료') ||
-              errorString.contains('expired') ||
-              errorString.contains('400') ||
-              errorString.contains('유효하지 않은 refresh token');
+              refreshError is AuthException && refreshError.statusCode == 400;
 
           if (isRefreshTokenExpired) {
             debugPrint('⚠️ Refresh Token이 만료되었습니다. 로컬 토큰 삭제 중...');
@@ -260,8 +261,9 @@ class AuthRepositoryImpl implements AuthRepository {
             }
 
             // Refresh Token 만료를 명확히 표시하는 예외 던지기
-            throw Exception(
+            throw AuthException(
               'REFRESH_TOKEN_EXPIRED: Refresh Token이 만료되었습니다. 다시 로그인해주세요.',
+              400,
             );
           }
 

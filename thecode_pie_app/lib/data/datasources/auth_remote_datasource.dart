@@ -23,6 +23,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     serverClientId: AppConstants.googleServerClientId,
   );
 
+  Future<http.Response> _postGoogleLogin(String requestBody) {
+    return http
+        .post(
+          Uri.parse(AppConstants.googleLoginEndpoint),
+          headers: {'Content-Type': 'application/json'},
+          body: requestBody,
+        )
+        .timeout(AppConstants.connectTimeout);
+  }
+
   /// Google 로그인으로 ID Token 가져오기
   @override
   Future<String?> getIdToken() async {
@@ -66,16 +76,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     debugPrint('로그인 요청 URL: ${AppConstants.googleLoginEndpoint}');
     debugPrint('요청 본문: $requestBody');
 
-    final response = await http
-        .post(
-          Uri.parse(AppConstants.googleLoginEndpoint),
-          headers: {'Content-Type': 'application/json'},
-          body: requestBody,
-        )
-        .timeout(AppConstants.connectTimeout);
+    http.Response response = await _postGoogleLogin(requestBody);
 
     debugPrint('서버 응답 상태 코드: ${response.statusCode}');
     debugPrint('서버 응답 본문: ${response.body}');
+
+    // 드물게 서버/로컬 시간 차이로 Google ID Token이 "too early"로 거절되는 경우가 있어
+    // 한 번만 짧게 지연 후 재시도한다. (근본 해결은 백엔드의 clock skew 허용/시간 동기화)
+    if (response.statusCode == 400 &&
+        response.body.toLowerCase().contains('token used too early')) {
+      debugPrint('⚠️ Google ID Token "used too early" 감지 - 2초 후 로그인 요청 1회 재시도');
+      await Future.delayed(const Duration(seconds: 2));
+      response = await _postGoogleLogin(requestBody);
+      debugPrint('재시도 응답 상태 코드: ${response.statusCode}');
+      debugPrint('재시도 응답 본문: ${response.body}');
+    }
 
     if (response.statusCode != 200) {
       // 400 에러의 경우 상세 메시지 출력
