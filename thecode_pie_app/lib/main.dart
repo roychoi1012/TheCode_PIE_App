@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme/app_theme.dart';
 import 'constants/app_constants.dart';
-import 'viewmodels/auth_viewmodel.dart';
-import 'views/login/login_screen.dart';
+import 'injection/dependency_injection.dart';
+import 'presentation/views/login/login_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,10 +26,7 @@ class TheCodePieApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthViewModel()),
-        // 다른 ViewModel들을 여기에 추가
-      ],
+      providers: DependencyInjection.providers,
       child: MaterialApp(
         title: AppConstants.appName,
         theme: AppTheme.darkTheme,

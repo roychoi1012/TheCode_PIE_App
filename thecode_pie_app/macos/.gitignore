@@ -5,3 +5,7 @@
 # Xcode-related
 **/dgph
 **/xcuserdata/
+
+# Accidental duplicate/backup files (often created by copy operations)
+**/*.backup
+Podfile 2

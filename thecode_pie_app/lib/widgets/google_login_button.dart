@@ -23,13 +23,13 @@ class GoogleLoginButton extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: const LinearGradient(
-            colors: [AppColors.neonPurple, AppColors.neonCyan],
+            colors: [Color(0xFF7C3AED), Color(0xFF22D3EE)], // 구글 브랜드 색상 유지
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           boxShadow: const [
             BoxShadow(
-              color: AppColors.neonPurpleShadow,
+              color: Color(0x804B2DFA), // 구글 브랜드 그림자 색상
               blurRadius: 20,
               spreadRadius: 2,
               offset: Offset(0, 8),
