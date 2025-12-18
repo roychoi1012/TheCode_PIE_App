@@ -1,11 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'theme/app_theme.dart';
+import 'core/theme/app_theme.dart';
 import 'constants/app_constants.dart';
-import 'injection/dependency_injection.dart';
-import 'presentation/views/login/login_screen.dart';
+import 'providers/app_providers.dart';
+import 'presentation/screen/auth/auth_screen_root.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +29,7 @@ class TheCodePieApp extends StatelessWidget {
       child: MaterialApp(
         title: AppConstants.appName,
         theme: AppTheme.darkTheme,
-        home: const LoginScreen(),
+        home: const AuthScreenRoot(),
         debugShowCheckedModeBanner: false,
       ),
     );
