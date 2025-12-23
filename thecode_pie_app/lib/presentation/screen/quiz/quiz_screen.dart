@@ -6,6 +6,7 @@ import 'package:thecode_pie_app/quiz/data/data_source/progress_storage.dart';
 
 import '../../component/retro_background.dart';
 import '../../component/retro_glass_card.dart';
+import '../../component/quiz_image.dart';
 import 'quiz_view_model.dart';
 import 'quiz_screen_root.dart';
 import '../../../providers/app_providers.dart';
@@ -314,139 +315,20 @@ class _QuizScreenState extends State<QuizScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                // 이미지 컨테이너 (그림자 효과 추가)
-                                Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppColors.accentOrange
-                                            .withOpacity(0.3),
-                                        blurRadius: 20,
-                                        spreadRadius: 2,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: AspectRatio(
-                                      aspectRatio: 16 / 9,
-                                      child: stage.imageUrl == null
-                                          ? Container(
-                                              color: Colors.black.withOpacity(
-                                                0.2,
-                                              ),
-                                              alignment: Alignment.center,
-                                              padding: const EdgeInsets.all(12),
-                                              child: Text(
-                                                '이미지가 없습니다.',
-                                                style: GoogleFonts.pressStart2p(
-                                                  fontSize: 8,
-                                                  color:
-                                                      AppColors.textSecondary,
-                                                  height: 1.6,
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            )
-                                          : Stack(
-                                              fit: StackFit.expand,
-                                              children: [
-                                                Image.network(
-                                                  stage.imageUrl!,
-                                                  fit: BoxFit.cover,
-                                                  loadingBuilder:
-                                                      (
-                                                        context,
-                                                        child,
-                                                        loadingProgress,
-                                                      ) {
-                                                        if (loadingProgress ==
-                                                            null) {
-                                                          return child;
-                                                        }
-                                                        return const Center(
-                                                          child:
-                                                              CircularProgressIndicator(
-                                                                color: AppColors
-                                                                    .accentOrange,
-                                                              ),
-                                                        );
-                                                      },
-                                                  errorBuilder: (context, error, stack) {
-                                                    return Container(
-                                                      color: Colors.black
-                                                          .withOpacity(0.2),
-                                                      alignment:
-                                                          Alignment.center,
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                            12,
-                                                          ),
-                                                      child: Column(
-                                                        mainAxisSize:
-                                                            MainAxisSize.min,
-                                                        children: [
-                                                          Text(
-                                                            '이미지를 불러올 수 없습니다.\n(만료되었을 수 있어요)',
-                                                            style: GoogleFonts.pressStart2p(
-                                                              fontSize: 8,
-                                                              color: AppColors
-                                                                  .textSecondary,
-                                                              height: 1.6,
-                                                            ),
-                                                            textAlign: TextAlign
-                                                                .center,
-                                                          ),
-                                                          const SizedBox(
-                                                            height: 10,
-                                                          ),
-                                                          ElevatedButton(
-                                                            onPressed:
-                                                                vm.isLoadingStage
-                                                                ? null
-                                                                : () {
-                                                                    vm.loadStage(
-                                                                      episodeId:
-                                                                          widget
-                                                                              .episodeId,
-                                                                      stageNo:
-                                                                          widget
-                                                                              .stageNo,
-                                                                    );
-                                                                  },
-                                                            style: ElevatedButton.styleFrom(
-                                                              backgroundColor:
-                                                                  AppColors
-                                                                      .accentOrange,
-                                                              foregroundColor:
-                                                                  AppColors
-                                                                      .textPrimary,
-                                                            ),
-                                                            child: Text(
-                                                              'REFRESH',
-                                                              style:
-                                                                  GoogleFonts.pressStart2p(
-                                                                    fontSize:
-                                                                        10,
-                                                                    letterSpacing:
-                                                                        1,
-                                                                  ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
-                                              ],
-                                            ),
-                                    ),
+                                // 이미지 컨테이너 (정사각형, 크게)
+                                Expanded(
+                                  child: QuizImage(
+                                    imageUrl: stage.imageUrl,
+                                    isLoading: vm.isLoadingStage,
+                                    onRefresh: () {
+                                      vm.loadStage(
+                                        episodeId: widget.episodeId,
+                                        stageNo: widget.stageNo,
+                                      );
+                                    },
                                   ),
                                 ),
-                                const SizedBox(height: 20),
-                                // 답변 입력 필드
+                                // 답변 입력 필드 (하단 고정)
                                 Container(
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(16),
@@ -510,7 +392,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 20),
+                                const SizedBox(height: 16),
                                 // 네비게이션 및 제출 버튼
                                 Row(
                                   children: [
