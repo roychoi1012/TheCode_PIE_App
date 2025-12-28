@@ -10,6 +10,7 @@ import '../../component/quiz_image.dart';
 import 'quiz_view_model.dart';
 import 'quiz_screen_root.dart';
 import '../../../providers/app_providers.dart';
+import '../../component/drawing_board.dart';
 
 class QuizScreen extends StatefulWidget {
   final int episodeId;
@@ -717,6 +718,7 @@ class _QuizScreenState extends State<QuizScreen> {
               },
             ),
           ),
+          const DrawingBoard(),
         ],
       ),
     );
