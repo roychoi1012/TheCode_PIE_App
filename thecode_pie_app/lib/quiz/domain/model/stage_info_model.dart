@@ -1,4 +1,4 @@
-import 'package:thecode_pie_app/constants/app_constants.dart';
+import 'package:thecode_pie_app/core/constants/app_constants.dart';
 
 class StageInfoModel {
   final String message;

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:thecode_pie_app/core/constants/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/constants/app_colors.dart';
 
 // 각 경로의 색상과 굵기를 저장하는 클래스
 class DrawingPath {

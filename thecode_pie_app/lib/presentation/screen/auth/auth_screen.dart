@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:thecode_pie_app/constants/app_colors.dart';
-import 'package:thecode_pie_app/constants/app_constants.dart';
+import 'package:thecode_pie_app/core/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/constants/app_constants.dart';
 import 'package:thecode_pie_app/presentation/component/google_login_button.dart';
 import 'package:thecode_pie_app/presentation/component/retro_background.dart';
 import 'package:thecode_pie_app/presentation/component/retro_glass_card.dart';

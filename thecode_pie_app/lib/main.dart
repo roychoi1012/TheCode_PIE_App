@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme/app_theme.dart';
-import 'constants/app_constants.dart';
+import 'core/constants/app_constants.dart';
 import 'providers/app_providers.dart';
 import 'presentation/screen/auth/auth_screen_root.dart';
 

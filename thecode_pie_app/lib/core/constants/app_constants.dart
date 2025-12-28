@@ -12,7 +12,7 @@ class AppConstants {
 
   // API 설정 (환경변수에서 읽기)
   static String get baseUrl =>
-      dotenv.env['DJANGO_BASE_URL'] ?? 'http://localhost:8000';
+      dotenv.env['DJANGO_BASE_URL'] ?? 'https://clavisapi.store/';
   static String get s3Region => dotenv.env['S3_REGION'] ?? 'ap-northeast-2';
   static const String apiVersion = '/api/v1';
 

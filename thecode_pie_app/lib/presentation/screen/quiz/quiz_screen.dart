@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:thecode_pie_app/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/constants/app_colors.dart';
 import 'package:thecode_pie_app/quiz/data/data_source/progress_storage.dart';
 
 import '../../component/retro_background.dart';
