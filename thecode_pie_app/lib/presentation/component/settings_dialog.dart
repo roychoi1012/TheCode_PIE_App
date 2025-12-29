@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:thecode_pie_app/constants/app_colors.dart';
-import 'package:thecode_pie_app/constants/app_constants.dart';
+import 'package:thecode_pie_app/core/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/constants/app_constants.dart';
 import 'package:thecode_pie_app/providers/auth_provider.dart';
 
 /// 설정 다이얼로그 위젯

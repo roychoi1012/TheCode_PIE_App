@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:thecode_pie_app/auth/domain/model/user_model.dart';
 
-import '../../constants/app_constants.dart';
+import '../constants/app_constants.dart';
 
 /// 인증 로컬 데이터 소스 (로컬 저장소)
 abstract class AuthLocalDataSource {

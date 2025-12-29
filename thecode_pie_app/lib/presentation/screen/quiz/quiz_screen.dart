@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:thecode_pie_app/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/constants/app_colors.dart';
 import 'package:thecode_pie_app/quiz/data/data_source/progress_storage.dart';
 
 import '../../component/retro_background.dart';
@@ -10,6 +10,7 @@ import '../../component/quiz_image.dart';
 import 'quiz_view_model.dart';
 import 'quiz_screen_root.dart';
 import '../../../providers/app_providers.dart';
+import '../../component/drawing_board.dart';
 
 class QuizScreen extends StatefulWidget {
   final int episodeId;
@@ -717,6 +718,7 @@ class _QuizScreenState extends State<QuizScreen> {
               },
             ),
           ),
+          const DrawingBoard(),
         ],
       ),
     );

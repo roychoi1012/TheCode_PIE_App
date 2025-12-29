@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:thecode_pie_app/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/constants/app_colors.dart';
 
 /// 레트로 스타일 배경 위젯
 class RetroBackground extends StatelessWidget {

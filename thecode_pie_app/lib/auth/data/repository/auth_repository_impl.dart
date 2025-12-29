@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:thecode_pie_app/auth/data/repository/auth_repository.dart';
 import 'package:thecode_pie_app/auth/domain/model/auth_response_model.dart';
 import 'package:thecode_pie_app/auth/domain/model/user_model.dart';
-import 'package:thecode_pie_app/constants/app_constants.dart';
+import 'package:thecode_pie_app/core/constants/app_constants.dart';
 import 'package:thecode_pie_app/core/api/auth_api.dart';
 import 'package:thecode_pie_app/core/exceptions/auth_exception.dart';
 import 'package:thecode_pie_app/core/storage/auth_storage.dart';

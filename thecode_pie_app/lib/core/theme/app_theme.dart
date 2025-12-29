@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:thecode_pie_app/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/constants/app_colors.dart';
 
 /// 앱 테마 설정
 class AppTheme {

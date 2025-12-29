@@ -1,5 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:thecode_pie_app/constants/app_constants.dart';
+import 'package:thecode_pie_app/core/constants/app_constants.dart';
 
 /// 진행 상황 저장소 (Static 클래스 - 기존 로직 유지)
 class ProgressStorage {

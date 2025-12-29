@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-import '../../constants/app_constants.dart';
+import '../constants/app_constants.dart';
 
 abstract class ContentsRemoteDataSource {
   Future<http.Response> getStage({

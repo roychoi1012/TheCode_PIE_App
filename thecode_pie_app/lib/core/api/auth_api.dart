@@ -5,7 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:thecode_pie_app/auth/domain/model/auth_response_model.dart';
 import 'package:thecode_pie_app/auth/domain/model/user_model.dart';
 
-import '../../constants/app_constants.dart';
+import '../constants/app_constants.dart';
 import '../../core/exceptions/auth_exception.dart';
 
 /// 인증 원격 데이터 소스 (API 호출)
