@@ -316,11 +316,17 @@ class LoginScreen extends StatelessWidget {
 
   /// 설정 다이얼로그 표시
   void _showSettingsDialog(BuildContext context) {
+    // Provider에서 사용자 ID 가져오기
+    final viewModel = Provider.of<AuthViewModel>(context, listen: false);
+    final userId = viewModel.currentUser?.id;
+
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.5),
+      useRootNavigator: false, // 같은 Navigator 트리 사용
       builder: (BuildContext dialogContext) {
-        return const SettingsDialog();
+        // 사용자 ID를 직접 전달
+        return SettingsDialog(userId: userId);
       },
     );
   }
