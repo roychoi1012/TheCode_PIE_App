@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
 
 /// 퀴즈 이미지 컴포넌트 (정사각형)
@@ -19,7 +18,7 @@ class QuizImage extends StatelessWidget {
   Widget build(BuildContext context) {
     // LayoutBuilder 대신 AspectRatio를 사용하여 1:1 비율 강제
     return Align(
-      alignment: Alignment.center,
+      alignment: .center,
       child: AspectRatio(
         aspectRatio: 1.0, // 가로:세로 = 1:1 (정사각형)
         child: Container(

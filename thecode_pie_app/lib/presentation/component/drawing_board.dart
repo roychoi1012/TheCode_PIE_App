@@ -130,14 +130,14 @@ class _DrawingBoardState extends State<DrawingBoard> {
           ),
         // 컨트롤 UI (그림 그리기 영역 위에 배치, 터치 이벤트 차단)
         Align(
-          alignment: Alignment.bottomRight,
+          alignment: .bottomRight,
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: IgnorePointer(
               ignoring: false,
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: .min,
+                crossAxisAlignment: .end,
                 children: [
                   // 색상 선택 UI
                   if (_isDrawingActive && _showColorPicker)
@@ -237,7 +237,7 @@ class _DrawingBoardState extends State<DrawingBoard> {
                         ],
                       ),
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisSize: .min,
                         children: [
                           // 색상 선택 버튼
                           IconButton(
@@ -253,7 +253,7 @@ class _DrawingBoardState extends State<DrawingBoard> {
                           SizedBox(
                             width: 100,
                             child: Column(
-                              mainAxisSize: MainAxisSize.min,
+                              mainAxisSize: .min,
                               children: [
                                 Text(
                                   '${_strokeWidth.toInt()}',
@@ -274,7 +274,7 @@ class _DrawingBoardState extends State<DrawingBoard> {
                           ),
                           // 되돌리기와 전체 지우기 버튼 (한 줄로)
                           Row(
-                            mainAxisSize: MainAxisSize.min,
+                            mainAxisSize: .min,
                             children: [
                               // 되돌리기 버튼
                               IconButton(
@@ -376,11 +376,11 @@ class MyPainter extends CustomPainter {
 
     if (path.isEraser) {
       // 지우개 모드: 그린 부분을 투명하게 파냄
-      paint.blendMode = BlendMode.clear;
+      paint.blendMode = .clear;
       paint.color = Colors.black; // blendMode.clear 시 색상은 의미 없지만 할당
     } else {
       // 일반 모드
-      paint.blendMode = BlendMode.srcOver;
+      paint.blendMode = .srcOver;
       paint.color = path.color;
     }
 

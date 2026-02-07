@@ -6,7 +6,7 @@ import 'package:thecode_pie_app/core/constants/app_colors.dart';
 class AppTheme {
   static ThemeData get darkTheme {
     return ThemeData(
-      brightness: Brightness.dark,
+      brightness: .dark,
       scaffoldBackgroundColor: AppColors.darkBackground,
       textTheme: GoogleFonts.pressStart2pTextTheme(
         ThemeData.dark().textTheme.apply(
@@ -16,7 +16,7 @@ class AppTheme {
       ),
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.accentOrange,
-        brightness: Brightness.dark,
+        brightness: .dark,
         background: AppColors.darkBackground,
       ),
       useMaterial3: true,

@@ -153,7 +153,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     vertical: 16,
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    crossAxisAlignment: .stretch,
                     children: [
                       // 상단 헤더
                       Container(
@@ -185,7 +185,7 @@ class _QuizScreenState extends State<QuizScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment: .start,
                                 children: [
                                   Text(
                                     stage != null
@@ -218,7 +218,7 @@ class _QuizScreenState extends State<QuizScreen> {
                       Expanded(
                         child: RetroGlassCard(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            crossAxisAlignment: .stretch,
                             children: [
                               if (vm.isLoadingStage) ...[
                                 const SizedBox(height: 12),
@@ -236,7 +236,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                     color: AppColors.textSecondary,
                                     height: 1.6,
                                   ),
-                                  textAlign: TextAlign.center,
+                                  textAlign: .center,
                                 ),
                                 if (vm.errorMessage != null) ...[
                                   const SizedBox(height: 12),
@@ -247,7 +247,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                       color: Colors.red.shade300,
                                       height: 1.6,
                                     ),
-                                    textAlign: TextAlign.center,
+                                    textAlign: .center,
                                   ),
                                 ],
                                 const SizedBox(height: 16),
@@ -286,8 +286,8 @@ class _QuizScreenState extends State<QuizScreen> {
                                           0.05,
                                         ),
                                       ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
+                                      begin: .topLeft,
+                                      end: .bottomRight,
                                     ),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
@@ -312,7 +312,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                         ),
                                       ],
                                     ),
-                                    textAlign: TextAlign.center,
+                                    textAlign: .center,
                                   ),
                                 ),
                                 const SizedBox(height: 16),
@@ -634,8 +634,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                             ),
                                           )
                                         : Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
+                                            mainAxisAlignment: .center,
                                             children: [
                                               const Icon(
                                                 Icons.lightbulb_outline,
@@ -674,8 +673,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                       ),
                                     ),
                                     child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                      mainAxisAlignment: .center,
                                       children: [
                                         const Icon(
                                           Icons.flag,
@@ -704,7 +702,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                       color: Colors.red.shade300,
                                       height: 1.6,
                                     ),
-                                    textAlign: TextAlign.center,
+                                    textAlign: .center,
                                   ),
                                 ],
                               ],

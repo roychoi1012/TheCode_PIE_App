@@ -13,8 +13,8 @@ class RetroBackground extends StatelessWidget {
         Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+              begin: .topLeft,
+              end: .bottomRight,
               colors: [
                 AppColors.darkBackground,
                 AppColors.darkBackgroundSecondary,
@@ -27,11 +27,11 @@ class RetroBackground extends StatelessWidget {
           opacity: 0.16,
           child: ShaderMask(
             shaderCallback: (rect) => const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+              begin: .topCenter,
+              end: .bottomCenter,
               colors: [Colors.white, Colors.transparent],
             ).createShader(rect),
-            blendMode: BlendMode.dstIn,
+            blendMode: .dstIn,
             child: CustomPaint(painter: _GridPainter()),
           ),
         ),

@@ -23,8 +23,8 @@ class GoogleLoginButton extends StatelessWidget {
           shape: BoxShape.circle,
           gradient: const LinearGradient(
             colors: [Color(0xFF7C3AED), Color(0xFF22D3EE)], // 구글 브랜드 색상 유지
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: .topLeft,
+            end: .bottomRight,
           ),
           boxShadow: const [
             BoxShadow(
@@ -135,12 +135,12 @@ class _GoogleLogoPainter extends CustomPainter {
         text: 'G',
         style: GoogleFonts.roboto(
           fontSize: size.width * 0.5,
-          fontWeight: FontWeight.w500,
+          fontWeight: .w500,
           color: const Color(0xFF4285F4),
         ),
       ),
       textDirection: TextDirection.ltr,
-      textAlign: TextAlign.center,
+      textAlign: .center,
     );
     textPainter.layout();
     textPainter.paint(

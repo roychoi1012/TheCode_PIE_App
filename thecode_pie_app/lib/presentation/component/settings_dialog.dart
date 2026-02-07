@@ -157,8 +157,8 @@ class _SettingsDialogState extends State<SettingsDialog>
               ),
             ),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: .min,
+              crossAxisAlignment: .stretch,
               children: [
                 Text(
                   'SETTINGS',
@@ -166,7 +166,7 @@ class _SettingsDialogState extends State<SettingsDialog>
                     fontSize: 12,
                     color: AppColors.accentOrange,
                   ),
-                  textAlign: TextAlign.center,
+                  textAlign: .center,
                 ),
                 const SizedBox(height: 24),
                 Text(

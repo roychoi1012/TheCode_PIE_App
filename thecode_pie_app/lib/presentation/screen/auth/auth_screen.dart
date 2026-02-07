@@ -49,7 +49,7 @@ class LoginScreen extends StatelessWidget {
                       vertical: 32,
                     ),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisSize: .min,
                       children: [
                         Text(
                           'PIE',
@@ -65,7 +65,7 @@ class LoginScreen extends StatelessWidget {
                               ),
                             ],
                           ),
-                          textAlign: TextAlign.center,
+                          textAlign: .center,
                         ),
                         const SizedBox(height: 18),
                         Text(
@@ -82,7 +82,7 @@ class LoginScreen extends StatelessWidget {
                           builder: (context, viewModel, child) {
                             return RetroGlassCard(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                crossAxisAlignment: .stretch,
                                 children: [
                                   // 로그인 전 UI
                                   if (!viewModel.isAuthenticated) ...[
@@ -92,7 +92,7 @@ class LoginScreen extends StatelessWidget {
                                         fontSize: 14,
                                         color: AppColors.accentOrange,
                                       ),
-                                      textAlign: TextAlign.center,
+                                      textAlign: .center,
                                     ),
                                     const SizedBox(height: 32),
                                     Center(
@@ -114,7 +114,7 @@ class LoginScreen extends StatelessWidget {
                                         color: AppColors.accentOrange,
                                         height: 1.6,
                                       ),
-                                      textAlign: TextAlign.center,
+                                      textAlign: .center,
                                     ),
                                   ],
                                   // 로그인 후 UI
@@ -122,8 +122,7 @@ class LoginScreen extends StatelessWidget {
                                       viewModel.currentUser != null) ...[
                                     // 사용자 이름과 버튼들
                                     Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment: .spaceBetween,
                                       children: [
                                         Expanded(
                                           child: Text(
@@ -138,7 +137,7 @@ class LoginScreen extends StatelessWidget {
                                           ),
                                         ),
                                         Row(
-                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisSize: .min,
                                           children: [
                                             IconButton(
                                               onPressed: () async {
@@ -234,7 +233,7 @@ class LoginScreen extends StatelessWidget {
                                           fontSize: 8,
                                           color: Colors.red.shade300,
                                         ),
-                                        textAlign: TextAlign.center,
+                                        textAlign: .center,
                                       ),
                                     ),
                                   ],
