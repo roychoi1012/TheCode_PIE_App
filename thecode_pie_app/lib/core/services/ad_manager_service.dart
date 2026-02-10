@@ -1,8 +1,16 @@
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '../config/ad_config.g.dart';
+
 class AdManagerService {
   RewardedAd? _rewardedAd;
+
+  /// 리워드 광고 단위 ID: local.properties의 admob.reward.unit.id → .env fallback
+  static String get _rewardUnitId =>
+      admobAndroidRewardUnitId.isNotEmpty
+          ? admobAndroidRewardUnitId
+          : (dotenv.env['ADMOB_ANDROID_REWARD_UNIT_ID'] ?? '');
 
   void loadAd({
     required String userId,
@@ -12,7 +20,7 @@ class AdManagerService {
     print('--- 광고 로드 시도 시작 ---');
     print('광고 ID: $userId, Ep: $episodeCode, Stage: $stageNo');
     RewardedAd.load(
-      adUnitId: dotenv.env['ADMOB_ANDROID_REWARD_UNIT_ID'] ?? '',
+      adUnitId: _rewardUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (RewardedAd ad) {
