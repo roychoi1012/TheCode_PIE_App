@@ -25,6 +25,12 @@ class AppConstants {
   static String get meEndpoint => '$baseUrl$apiVersion/auth/me/';
 
   // Contents(Quiz) API 엔드포인트
+  static String get startStageEndpoint => '$baseUrl$apiVersion/contents/start/';
+  static String get progressStartEndpoint =>
+      '$baseUrl$apiVersion/progress/start/';
+  static String get completeStageEndpoint =>
+      '$baseUrl$apiVersion/progress/complete-stage/';
+
   static String stageEndpoint(int episodeId, int stageNo) =>
       '$baseUrl$apiVersion/contents/$episodeId/$stageNo/';
 
@@ -33,6 +39,9 @@ class AppConstants {
 
   static String hintEndpoint(int episodeId, int stageNo) =>
       '$baseUrl$apiVersion/contents/$episodeId/$stageNo/hint/';
+
+  static String hintAccessEndpoint(int episodeId, int stageNo) =>
+      '$baseUrl$apiVersion/commerce/hint-access/$episodeId/$stageNo/';
 
   /// s3://bucket/key 형태를 HTTPS public URL로 변환
   /// - 이미 http/https 이면 그대로 반환

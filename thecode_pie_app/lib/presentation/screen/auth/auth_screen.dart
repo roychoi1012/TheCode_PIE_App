@@ -12,7 +12,6 @@ import 'auth_view_model.dart';
 import '../../../providers/app_providers.dart';
 import '../quiz/quiz_view_model.dart';
 import '../quiz/quiz_screen_root.dart';
-import '../../../quiz/data/data_source/progress_storage.dart';
 
 /// 로그인 화면 (최종본)
 class LoginScreen extends StatelessWidget {
@@ -285,18 +284,23 @@ class LoginScreen extends StatelessWidget {
     AuthViewModel viewModel,
   ) async {
     try {
-      final (episodeId, stageNo) = await ProgressStorage.getLastProgress();
+      final quizViewModel = Provider.of<QuizViewModel>(context, listen: false);
+      final start = await quizViewModel.resolveStartProgress();
       if (!context.mounted) return;
 
       debugPrint(
-        '[LoginScreen] START pressed. navigating to QuizScreen ep=$episodeId stage=$stageNo',
+        '[LoginScreen] START pressed. navigating to QuizScreen ep=${start.episodeId} code=${start.episodeCode} stage=${start.stageNo}',
       );
 
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (ctx) => ChangeNotifierProvider<QuizViewModel>(
             create: (_) => DependencyInjection.createQuizViewModel(),
-            child: QuizScreenRoot(episodeId: episodeId, stageNo: stageNo),
+            child: QuizScreenRoot(
+              episodeId: start.episodeId,
+              episodeCode: start.episodeCode,
+              stageNo: start.stageNo,
+            ),
           ),
         ),
       );

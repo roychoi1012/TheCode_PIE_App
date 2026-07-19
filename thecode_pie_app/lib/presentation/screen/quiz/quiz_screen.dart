@@ -5,10 +5,10 @@ import 'package:thecode_pie_app/core/constants/app_colors.dart';
 import 'package:thecode_pie_app/core/services/ad_manager_service.dart';
 import 'package:thecode_pie_app/quiz/data/data_source/progress_storage.dart';
 
-
 import '../../component/retro_background.dart';
 import '../../component/retro_glass_card.dart';
 import '../../component/quiz_image.dart';
+import '../auth/auth_view_model.dart';
 import 'quiz_view_model.dart';
 import 'quiz_screen_root.dart';
 import '../../../providers/app_providers.dart';
@@ -16,9 +16,15 @@ import '../../component/drawing_board.dart';
 
 class QuizScreen extends StatefulWidget {
   final int episodeId;
+  final String episodeCode;
   final int stageNo;
 
-  const QuizScreen({super.key, required this.episodeId, required this.stageNo});
+  const QuizScreen({
+    super.key,
+    required this.episodeId,
+    required this.episodeCode,
+    required this.stageNo,
+  });
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
@@ -41,7 +47,11 @@ class _QuizScreenState extends State<QuizScreen> {
       MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider<QuizViewModel>(
           create: (_) => DependencyInjection.createQuizViewModel(),
-          child: QuizScreenRoot(episodeId: widget.episodeId, stageNo: stageNo),
+          child: QuizScreenRoot(
+            episodeId: widget.episodeId,
+            episodeCode: widget.episodeCode,
+            stageNo: stageNo,
+          ),
         ),
       ),
     );
@@ -63,11 +73,19 @@ class _QuizScreenState extends State<QuizScreen> {
       setState(() => _lastClearedStageNo = value);
     });
 
-    _adManager.loadAd(
-      userId: "dev-google-user-001",
-      episodeCode: "001",
-      stageNo: widget.stageNo,
-    );
+    final currentUser = Provider.of<AuthViewModel>(
+      context,
+      listen: false,
+    ).currentUser;
+    final adUserId =
+        currentUser?.providerUserId ?? currentUser?.id?.toString() ?? '';
+    if (adUserId.isNotEmpty && widget.episodeCode.isNotEmpty) {
+      _adManager.loadAd(
+        userId: adUserId,
+        episodeCode: widget.episodeCode,
+        stageNo: widget.stageNo,
+      );
+    }
   }
 
   @override
@@ -486,23 +504,34 @@ class _QuizScreenState extends State<QuizScreen> {
                                                   );
 
                                                   if (result.isCorrect) {
-                                                    await ProgressStorage.markStageCleared(
-                                                      episodeId:
-                                                          widget.episodeId,
-                                                      stageNo: widget.stageNo,
-                                                    );
-                                                    if (!context.mounted)
+                                                    final progress = await vm
+                                                        .completeStage(
+                                                          episodeId:
+                                                              widget.episodeId,
+                                                          stageNo:
+                                                              widget.stageNo,
+                                                        );
+                                                    if (!context.mounted) {
                                                       return;
+                                                    }
+
+                                                    if (progress == null) {
+                                                      await _showResultSnackBar(
+                                                        vm.errorMessage ??
+                                                            'Progress update failed.',
+                                                        success: false,
+                                                      );
+                                                      return;
+                                                    }
+
                                                     setState(
                                                       () => _lastClearedStageNo =
-                                                          _lastClearedStageNo <
-                                                              widget.stageNo
-                                                          ? widget.stageNo
-                                                          : _lastClearedStageNo,
+                                                          progress
+                                                              .highestStageNo,
                                                     );
 
                                                     final next =
-                                                        vm.stage?.nextStageNo;
+                                                        progress.nextStageNo;
                                                     if (next != null) {
                                                       _answerController.clear();
                                                       await _goToStage(
@@ -602,28 +631,49 @@ class _QuizScreenState extends State<QuizScreen> {
                                   ),
                                   child: ElevatedButton(
                                     onPressed: vm.isLoadingHint
-                                      ? null
-                                      : () {
-                                          _adManager.showAd(
-                                            onRewardEarned: () async {
-                                              final hint = await vm.loadHint(
-                                                episodeId: widget.episodeId,
-                                                stageNo: widget.stageNo,
-                                              );
+                                        ? null
+                                        : () {
+                                            _adManager.showAd(
+                                              onRewardEarned: () async {
+                                                final hasHintAccess = await vm
+                                                    .waitForHintAccess(
+                                                      episodeId:
+                                                          widget.episodeId,
+                                                      stageNo: widget.stageNo,
+                                                    );
 
-                                              if (!context.mounted) return;
+                                                if (!context.mounted) return;
 
-                                              if (hint != null) {
-                                                await _showHintDialog(hint.content);
-                                              } else if (vm.errorMessage != null) {
-                                                await _showResultSnackBar(
-                                                  vm.errorMessage!,
-                                                  success: false,
+                                                if (!hasHintAccess) {
+                                                  await _showResultSnackBar(
+                                                    vm.errorMessage ??
+                                                        'Reward verification failed.',
+                                                    success: false,
+                                                  );
+                                                  return;
+                                                }
+
+                                                final hint = await vm.loadHint(
+                                                  episodeId: widget.episodeId,
+                                                  stageNo: widget.stageNo,
                                                 );
-                                              }
-                                            },
-                                          );
-                                        },
+
+                                                if (!context.mounted) return;
+
+                                                if (hint != null) {
+                                                  await _showHintDialog(
+                                                    hint.content,
+                                                  );
+                                                } else if (vm.errorMessage !=
+                                                    null) {
+                                                  await _showResultSnackBar(
+                                                    vm.errorMessage!,
+                                                    success: false,
+                                                  );
+                                                }
+                                              },
+                                            );
+                                          },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.white.withOpacity(
                                         0.1,

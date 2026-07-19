@@ -1,6 +1,7 @@
 /// 사용자 모델 (Entity)
 class UserModel {
   final int? id;
+  final String? providerUserId;
   final String email;
   final String? username;
   final String? name; // 구글에서 오는 display_name (호환성 유지)
@@ -10,6 +11,7 @@ class UserModel {
 
   UserModel({
     this.id,
+    this.providerUserId,
     required this.email,
     this.username,
     this.name,
@@ -31,6 +33,8 @@ class UserModel {
 
     return UserModel(
       id: parsedId,
+      providerUserId:
+          json['provider_user_id'] as String? ?? json['p_id'] as String?,
       email: json['email'] as String,
       username: json['username'] as String?,
       name: json['name'] as String?,
@@ -43,6 +47,7 @@ class UserModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'provider_user_id': providerUserId,
       'email': email,
       'username': username,
       'name': name,

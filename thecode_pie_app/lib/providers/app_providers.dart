@@ -13,6 +13,9 @@ import '../auth/usecase/get_current_user_usecase.dart';
 import '../core/usecases/get_stage_usecase.dart';
 import '../core/usecases/submit_answer_usecase.dart';
 import '../core/usecases/get_hint_usecase.dart';
+import '../quiz/usecase/complete_stage_usecase.dart';
+import '../quiz/usecase/get_start_stage_usecase.dart';
+import '../quiz/usecase/has_hint_access_usecase.dart';
 import '../presentation/screen/auth/auth_view_model.dart';
 import '../presentation/screen/quiz/quiz_view_model.dart';
 
@@ -56,9 +59,12 @@ class DependencyInjection {
 
   static QuizViewModel _createQuizViewModel() {
     return QuizViewModel(
+      getStartStageUseCase: GetStartStageUseCase(_contentsRepository),
       getStageUseCase: GetStageUseCase(_contentsRepository),
       submitAnswerUseCase: SubmitAnswerUseCase(_contentsRepository),
       getHintUseCase: GetHintUseCase(_contentsRepository),
+      hasHintAccessUseCase: HasHintAccessUseCase(_contentsRepository),
+      completeStageUseCase: CompleteStageUseCase(_contentsRepository),
     );
   }
 

@@ -13,6 +13,16 @@ class ProgressStorage {
     return (episodeId, stageNo);
   }
 
+  static Future<(int episodeId, int stageNo)?> getSavedLastProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    final episodeId = prefs.getInt(AppConstants.lastEpisodeIdKey);
+    final stageNo = prefs.getInt(AppConstants.lastStageNoKey);
+    if (episodeId == null || stageNo == null) {
+      return null;
+    }
+    return (episodeId, stageNo);
+  }
+
   static Future<void> saveLastProgress({
     required int episodeId,
     required int stageNo,

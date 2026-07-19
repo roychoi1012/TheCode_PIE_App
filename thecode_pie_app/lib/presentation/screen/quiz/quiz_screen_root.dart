@@ -5,11 +5,13 @@ import 'quiz_screen.dart';
 /// QuizViewModel은 Navigator.push 시점에 ChangeNotifierProvider로 제공됨
 class QuizScreenRoot extends StatelessWidget {
   final int episodeId;
+  final String episodeCode;
   final int stageNo;
 
   const QuizScreenRoot({
     super.key,
     required this.episodeId,
+    required this.episodeCode,
     required this.stageNo,
   });
 
@@ -17,6 +19,10 @@ class QuizScreenRoot extends StatelessWidget {
   Widget build(BuildContext context) {
     // QuizViewModel은 Navigator.push 시점에 ChangeNotifierProvider로 제공되므로
     // 여기서는 직접 QuizScreen을 반환
-    return QuizScreen(episodeId: episodeId, stageNo: stageNo);
+    return QuizScreen(
+      episodeId: episodeId,
+      episodeCode: episodeCode,
+      stageNo: stageNo,
+    );
   }
 }

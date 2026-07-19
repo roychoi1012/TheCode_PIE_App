@@ -4,6 +4,14 @@ import 'package:http/http.dart' as http;
 import 'package:thecode_pie_app/core/constants/app_constants.dart';
 
 abstract class ContentsRemoteDataSource {
+  Future<http.Response> getStartStage({required String accessToken});
+
+  Future<http.Response> completeStage({
+    required String accessToken,
+    required int episodeId,
+    required int stageNo,
+  });
+
   Future<http.Response> getStage({
     required String accessToken,
     required int episodeId,
@@ -22,9 +30,54 @@ abstract class ContentsRemoteDataSource {
     required int episodeId,
     required int stageNo,
   });
+
+  Future<http.Response> hasHintAccess({
+    required String accessToken,
+    required int episodeId,
+    required int stageNo,
+  });
 }
 
 class ContentsRemoteDataSourceImpl implements ContentsRemoteDataSource {
+  @override
+  Future<http.Response> getStartStage({required String accessToken}) {
+    final url = AppConstants.progressStartEndpoint;
+    debugPrint(
+      '[ContentsRemote] GET start stage url=$url tokenLen=${accessToken.length}',
+    );
+    return http
+        .get(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+          },
+        )
+        .timeout(AppConstants.connectTimeout);
+  }
+
+  @override
+  Future<http.Response> completeStage({
+    required String accessToken,
+    required int episodeId,
+    required int stageNo,
+  }) {
+    final url = AppConstants.completeStageEndpoint;
+    debugPrint(
+      '[ContentsRemote] POST complete stage url=$url tokenLen=${accessToken.length} episodeId=$episodeId stageNo=$stageNo',
+    );
+    return http
+        .post(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'episode_id': episodeId, 'stage_no': stageNo}),
+        )
+        .timeout(AppConstants.connectTimeout);
+  }
+
   @override
   Future<http.Response> getStage({
     required String accessToken,
@@ -78,6 +131,27 @@ class ContentsRemoteDataSourceImpl implements ContentsRemoteDataSource {
     final url = AppConstants.hintEndpoint(episodeId, stageNo);
     debugPrint(
       '[ContentsRemote] GET hint url=$url tokenLen=${accessToken.length}',
+    );
+    return http
+        .get(
+          Uri.parse(url),
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+          },
+        )
+        .timeout(AppConstants.connectTimeout);
+  }
+
+  @override
+  Future<http.Response> hasHintAccess({
+    required String accessToken,
+    required int episodeId,
+    required int stageNo,
+  }) {
+    final url = AppConstants.hintAccessEndpoint(episodeId, stageNo);
+    debugPrint(
+      '[ContentsRemote] GET hint access url=$url tokenLen=${accessToken.length}',
     );
     return http
         .get(
