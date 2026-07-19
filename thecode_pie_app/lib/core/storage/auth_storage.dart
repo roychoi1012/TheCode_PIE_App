@@ -1,12 +1,11 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:thecode_pie_app/auth/domain/model/user_model.dart';
 
 import '../constants/app_constants.dart';
 
-/// 인증 로컬 데이터 소스 (로컬 저장소)
 abstract class AuthLocalDataSource {
   Future<void> saveAccessToken(String token);
   Future<void> saveRefreshToken(String refreshToken);
@@ -34,12 +33,10 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   @override
   Future<void> saveRefreshToken(String refreshToken) async {
-    debugPrint('saveRefreshToken 호출 - 저장할 토큰 길이: ${refreshToken.length}');
     await _secureStorage.write(
       key: AppConstants.refreshTokenKey,
       value: refreshToken,
     );
-    debugPrint('saveRefreshToken 완료 - 키: ${AppConstants.refreshTokenKey}');
   }
 
   @override
@@ -49,33 +46,13 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   }
 
   @override
-  Future<String?> getAccessToken() async {
-    debugPrint('getAccessToken 호출 - 키: ${AppConstants.tokenKey}');
-    final token = await _secureStorage.read(key: AppConstants.tokenKey);
-    if (token != null) {
-      debugPrint('getAccessToken 성공 - 토큰 길이: ${token.length}');
-      debugPrint(
-        'getAccessToken 성공 - 토큰 (처음 20자): ${token.substring(0, token.length > 20 ? 20 : token.length)}...',
-      );
-    } else {
-      debugPrint('getAccessToken 실패 - 토큰이 null입니다');
-    }
-    return token;
+  Future<String?> getAccessToken() {
+    return _secureStorage.read(key: AppConstants.tokenKey);
   }
 
   @override
-  Future<String?> getRefreshToken() async {
-    debugPrint('getRefreshToken 호출 - 키: ${AppConstants.refreshTokenKey}');
-    final token = await _secureStorage.read(key: AppConstants.refreshTokenKey);
-    if (token != null) {
-      debugPrint('getRefreshToken 성공 - 토큰 길이: ${token.length}');
-      debugPrint(
-        'getRefreshToken 성공 - 토큰 (처음 20자): ${token.substring(0, token.length > 20 ? 20 : token.length)}...',
-      );
-    } else {
-      debugPrint('getRefreshToken 실패 - 토큰이 null입니다');
-    }
-    return token;
+  Future<String?> getRefreshToken() {
+    return _secureStorage.read(key: AppConstants.refreshTokenKey);
   }
 
   @override
@@ -87,26 +64,13 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   }
 
   @override
-  Future<void> deleteAccessToken() async {
-    debugPrint('deleteAccessToken 호출 - 키: ${AppConstants.tokenKey}');
-    await _secureStorage.delete(key: AppConstants.tokenKey);
-    debugPrint('deleteAccessToken 완료');
+  Future<void> deleteAccessToken() {
+    return _secureStorage.delete(key: AppConstants.tokenKey);
   }
 
   @override
-  Future<void> deleteRefreshToken() async {
-    debugPrint('deleteRefreshToken 호출 - 키: ${AppConstants.refreshTokenKey}');
-    // 삭제 전에 현재 값 확인
-    final currentToken = await _secureStorage.read(
-      key: AppConstants.refreshTokenKey,
-    );
-    debugPrint('deleteRefreshToken - 삭제 전 토큰 존재 여부: ${currentToken != null}');
-    await _secureStorage.delete(key: AppConstants.refreshTokenKey);
-    // 삭제 후 확인
-    final afterDelete = await _secureStorage.read(
-      key: AppConstants.refreshTokenKey,
-    );
-    debugPrint('deleteRefreshToken 완료 - 삭제 후 토큰 존재 여부: ${afterDelete != null}');
+  Future<void> deleteRefreshToken() {
+    return _secureStorage.delete(key: AppConstants.refreshTokenKey);
   }
 
   @override

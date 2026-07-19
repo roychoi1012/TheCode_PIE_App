@@ -1,14 +1,14 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
 import 'package:thecode_pie_app/auth/domain/model/auth_response_model.dart';
 import 'package:thecode_pie_app/auth/domain/model/user_model.dart';
 
-import '../constants/app_constants.dart';
 import '../../core/exceptions/auth_exception.dart';
+import '../constants/app_constants.dart';
 
-/// 인증 원격 데이터 소스 (API 호출)
 abstract class AuthRemoteDataSource {
   Future<String?> getIdToken();
   Future<AuthResponseModel> signInWithGoogle(String idToken);
@@ -33,90 +33,59 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         .timeout(AppConstants.connectTimeout);
   }
 
-  /// Google 로그인으로 ID Token 가져오기
   @override
   Future<String?> getIdToken() async {
-    // 다른 계정으로 로그인할 수 있도록 이전 세션 정리
-    // signIn() 전에 signOut()을 호출하면 계정 선택 화면이 나타남
     try {
       await _googleSignIn.signOut();
-      debugPrint('이전 Google Sign-In 세션 정리 완료');
+      debugPrint('[AuthRemote] cleared previous Google Sign-In session');
     } catch (e) {
-      debugPrint('Google Sign-In 세션 정리 중 오류 (무시): $e');
-      // signOut 실패해도 계속 진행
+      debugPrint('[AuthRemote] Google Sign-In session cleanup ignored: $e');
     }
 
-    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    final googleUser = await _googleSignIn.signIn();
     if (googleUser == null) {
-      debugPrint('Google 로그인 취소됨');
+      debugPrint('[AuthRemote] Google Sign-In cancelled');
       return null;
     }
 
-    final GoogleSignInAuthentication googleAuth =
-        await googleUser.authentication;
-
+    final googleAuth = await googleUser.authentication;
     final idToken = googleAuth.idToken;
     if (idToken == null) {
-      debugPrint('ID Token을 가져올 수 없습니다.');
-      throw Exception('ID Token을 가져올 수 없습니다.');
+      throw Exception('ID Token is not available.');
     }
 
-    debugPrint('ID Token 획득 성공 (길이: ${idToken.length})');
     return idToken;
   }
 
   @override
   Future<AuthResponseModel> signInWithGoogle(String idToken) async {
-    // ID Token 유효성 검사
     if (idToken.isEmpty) {
-      throw Exception('ID Token이 비어있습니다.');
+      throw Exception('ID Token is empty.');
     }
 
     final requestBody = jsonEncode({'id_token': idToken});
-    debugPrint('로그인 요청 URL: ${AppConstants.googleLoginEndpoint}');
-    debugPrint('요청 본문: $requestBody');
+    debugPrint('[AuthRemote] POST ${AppConstants.googleLoginEndpoint}');
 
-    http.Response response = await _postGoogleLogin(requestBody);
+    var response = await _postGoogleLogin(requestBody);
+    debugPrint('[AuthRemote] google login status=${response.statusCode}');
 
-    debugPrint('서버 응답 상태 코드: ${response.statusCode}');
-    debugPrint('서버 응답 본문: ${response.body}');
-
-    // 드물게 서버/로컬 시간 차이로 Google ID Token이 "too early"로 거절되는 경우가 있어
-    // 한 번만 짧게 지연 후 재시도한다. (근본 해결은 백엔드의 clock skew 허용/시간 동기화)
     if (response.statusCode == 400 &&
         response.body.toLowerCase().contains('token used too early')) {
-      debugPrint('⚠️ Google ID Token "used too early" 감지 - 2초 후 로그인 요청 1회 재시도');
+      debugPrint('[AuthRemote] token used too early; retrying once');
       await Future.delayed(const Duration(seconds: 2));
       response = await _postGoogleLogin(requestBody);
-      debugPrint('재시도 응답 상태 코드: ${response.statusCode}');
-      debugPrint('재시도 응답 본문: ${response.body}');
+      debugPrint(
+        '[AuthRemote] google login retry status=${response.statusCode}',
+      );
     }
 
     if (response.statusCode != 200) {
-      // 400 에러의 경우 상세 메시지 출력
-      String errorMessage = '서버 응답 오류 (${response.statusCode})';
-      try {
-        final errorData = jsonDecode(response.body) as Map<String, dynamic>?;
-        if (errorData != null) {
-          final message =
-              errorData['message'] as String? ??
-              errorData['data']?['message'] as String? ??
-              errorData['data']?['global'] as String?;
-          if (message != null) {
-            errorMessage = message;
-          }
-        }
-      } catch (e) {
-        // JSON 파싱 실패 시 원본 응답 본문 사용
-        errorMessage = '서버 응답 오류 (${response.statusCode}): ${response.body}';
-      }
-      throw Exception(errorMessage);
+      throw Exception(_extractErrorMessage(response));
     }
 
     final responseData = jsonDecode(response.body) as Map<String, dynamic>;
-
     if (responseData['success'] != true || responseData['data'] == null) {
-      throw Exception(responseData['data']?['global'] ?? '로그인에 실패했습니다.');
+      throw Exception(responseData['data']?['global'] ?? 'Login failed.');
     }
 
     return AuthResponseModel.fromJson(responseData);
@@ -127,83 +96,60 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     await _googleSignIn.signOut();
 
     try {
-      await http
+      final response = await http
           .post(
             Uri.parse(AppConstants.logoutEndpoint),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'refresh_token': refreshToken}),
           )
           .timeout(AppConstants.connectTimeout);
+      debugPrint('[AuthRemote] logout status=${response.statusCode}');
     } catch (e) {
-      // 서버 로그아웃 실패는 클라이언트 로그아웃을 막지 않음
-      debugPrint('서버 로그아웃 호출 실패: $e');
+      debugPrint(
+        '[AuthRemote] server logout failed; local sign-out continues: $e',
+      );
     }
   }
 
   @override
   Future<String> refreshAccessToken(String refreshToken) async {
-    debugPrint('refreshAccessToken 호출: ${AppConstants.refreshTokenEndpoint}');
-    debugPrint('Refresh Token 길이: ${refreshToken.length}');
-
-    final requestBody = jsonEncode({'refresh_token': refreshToken});
-    debugPrint('요청 본문: $requestBody');
+    debugPrint('[AuthRemote] POST ${AppConstants.refreshTokenEndpoint}');
 
     final response = await http
         .post(
           Uri.parse(AppConstants.refreshTokenEndpoint),
           headers: {'Content-Type': 'application/json'},
-          body: requestBody,
+          body: jsonEncode({'refresh_token': refreshToken}),
         )
         .timeout(AppConstants.connectTimeout);
 
-    debugPrint('refreshAccessToken 응답 상태 코드: ${response.statusCode}');
-    debugPrint('refreshAccessToken 응답 본문: ${response.body}');
+    debugPrint('[AuthRemote] refresh status=${response.statusCode}');
 
     if (response.statusCode != 200) {
-      String errorMessage = '서버 응답 오류 (${response.statusCode})';
-      try {
-        final errorData = jsonDecode(response.body) as Map<String, dynamic>?;
-        if (errorData != null) {
-          errorMessage =
-              errorData['message'] as String? ??
-              errorData['data']?['message'] as String? ??
-              errorMessage;
-        }
-      } catch (e) {
-        errorMessage = '서버 응답 오류 (${response.statusCode}): ${response.body}';
-      }
-
-      // 400 에러인 경우 (Refresh Token 만료 등) 명확하게 표시
+      final errorMessage = _extractErrorMessage(response);
       if (response.statusCode == 400) {
-        debugPrint('❌ Refresh Token 갱신 실패 (400): $errorMessage');
-        debugPrint('⚠️ Refresh Token이 만료되었거나 유효하지 않습니다.');
+        debugPrint('[AuthRemote] refresh token rejected');
       }
-
       throw AuthException(errorMessage, response.statusCode);
     }
 
     final responseData = jsonDecode(response.body) as Map<String, dynamic>;
-
     if (responseData['success'] == true && responseData['data'] != null) {
       final data = responseData['data'] as Map<String, dynamic>;
       final accessToken = data['access_token'] as String?;
-
       if (accessToken != null) {
-        debugPrint('새로운 Access Token 획득 성공 (길이: ${accessToken.length})');
         return accessToken;
-      } else {
-        throw AuthException(data['message'] ?? 'Access Token을 받을 수 없습니다.');
       }
-    } else {
-      final data = responseData['data'] as Map<String, dynamic>?;
-      final message = data?['message'] ?? '토큰 갱신에 실패했습니다.';
-      throw AuthException(message);
+      throw AuthException(data['message'] ?? 'Access Token is missing.');
     }
+
+    final data = responseData['data'] as Map<String, dynamic>?;
+    throw AuthException(data?['message'] ?? 'Token refresh failed.');
   }
 
   @override
   Future<UserModel> getCurrentUser(String accessToken) async {
-    debugPrint('getCurrentUser 호출: ${AppConstants.meEndpoint}');
+    debugPrint('[AuthRemote] GET ${AppConstants.meEndpoint}');
 
     final response = await http
         .get(
@@ -215,59 +161,53 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         )
         .timeout(AppConstants.connectTimeout);
 
-    debugPrint('getCurrentUser 응답 상태 코드: ${response.statusCode}');
-    debugPrint('getCurrentUser 응답 본문: ${response.body}');
+    debugPrint('[AuthRemote] me status=${response.statusCode}');
 
-    // 401 에러는 명확하게 처리
     if (response.statusCode == 401) {
-      String errorMessage = '인증이 필요합니다.';
-      try {
-        final errorData = jsonDecode(response.body) as Map<String, dynamic>?;
-        if (errorData != null) {
-          errorMessage =
-              errorData['message'] as String? ??
-              errorData['data']?['message'] as String? ??
-              'Access Token이 만료되었거나 유효하지 않습니다.';
-        }
-      } catch (e) {
-        errorMessage = response.body;
-      }
-      throw AuthException(errorMessage, 401);
+      throw AuthException(
+        _extractErrorMessage(response, fallback: 'Authentication is required.'),
+        401,
+      );
     }
 
     if (response.statusCode != 200) {
-      String errorMessage = '서버 응답 오류 (${response.statusCode})';
-      try {
-        final errorData = jsonDecode(response.body) as Map<String, dynamic>?;
-        if (errorData != null) {
-          errorMessage =
-              errorData['message'] as String? ??
-              errorData['data']?['message'] as String? ??
-              errorMessage;
-        }
-      } catch (e) {
-        errorMessage = '서버 응답 오류 (${response.statusCode}): ${response.body}';
-      }
-      throw AuthException(errorMessage, response.statusCode);
+      throw AuthException(_extractErrorMessage(response), response.statusCode);
     }
 
     final responseData = jsonDecode(response.body) as Map<String, dynamic>;
-
     if (responseData['success'] == true && responseData['data'] != null) {
       final data = responseData['data'] as Map<String, dynamic>;
       final userData = data['user'] as Map<String, dynamic>?;
-
       if (userData == null) {
-        throw AuthException('사용자 정보가 없습니다.');
+        throw AuthException('User data is missing.');
       }
-
       return UserModel.fromJson(userData);
-    } else {
-      final message =
-          responseData['message'] as String? ??
-          responseData['data']?['message'] as String? ??
-          '사용자 정보를 가져올 수 없습니다.';
-      throw AuthException(message);
     }
+
+    final message =
+        responseData['message'] as String? ??
+        responseData['data']?['message'] as String? ??
+        'Failed to load user data.';
+    throw AuthException(message);
+  }
+
+  String _extractErrorMessage(
+    http.Response response, {
+    String fallback = 'Server response error',
+  }) {
+    var errorMessage = '$fallback (${response.statusCode})';
+    try {
+      final errorData = jsonDecode(response.body) as Map<String, dynamic>?;
+      if (errorData != null) {
+        errorMessage =
+            errorData['message'] as String? ??
+            errorData['data']?['message'] as String? ??
+            errorData['data']?['global'] as String? ??
+            errorMessage;
+      }
+    } catch (_) {
+      // Keep the status-only fallback; response bodies can include tokens.
+    }
+    return errorMessage;
   }
 }

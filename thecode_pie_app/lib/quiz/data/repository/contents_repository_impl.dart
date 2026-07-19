@@ -22,9 +22,6 @@ class ContentsRepositoryImpl implements ContentsRepository {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
-  String _preview(String s, {int max = 400}) =>
-      s.length <= max ? s : '${s.substring(0, max)}... (truncated)';
-
   Never _throwServerError(http.Response response) {
     try {
       final decoded = _decodeBody(response);
@@ -49,9 +46,7 @@ class ContentsRepositoryImpl implements ContentsRepository {
       return _remote.getStartStage(accessToken: accessToken);
     });
 
-    debugPrint(
-      '[ContentsRepo] getStartStage response status=${response.statusCode} contentType=${response.headers['content-type']} body=${_preview(response.body)}',
-    );
+    debugPrint('[ContentsRepo] getStartStage status=${response.statusCode}');
     if (response.statusCode != 200) {
       _throwServerError(response);
     }
@@ -82,9 +77,7 @@ class ContentsRepositoryImpl implements ContentsRepository {
       );
     });
 
-    debugPrint(
-      '[ContentsRepo] completeStage response status=${response.statusCode} contentType=${response.headers['content-type']} body=${_preview(response.body)}',
-    );
+    debugPrint('[ContentsRepo] completeStage status=${response.statusCode}');
     if (response.statusCode != 200) {
       _throwServerError(response);
     }
@@ -117,9 +110,7 @@ class ContentsRepositoryImpl implements ContentsRepository {
       );
     });
 
-    debugPrint(
-      '[ContentsRepo] getStage response status=${response.statusCode} contentType=${response.headers['content-type']} body=${_preview(response.body)}',
-    );
+    debugPrint('[ContentsRepo] getStage status=${response.statusCode}');
     if (response.statusCode != 200) {
       _throwServerError(response);
     }
@@ -157,9 +148,7 @@ class ContentsRepositoryImpl implements ContentsRepository {
       );
     });
 
-    debugPrint(
-      '[ContentsRepo] submitAnswer response status=${response.statusCode} contentType=${response.headers['content-type']} body=${_preview(response.body)}',
-    );
+    debugPrint('[ContentsRepo] submitAnswer status=${response.statusCode}');
     if (response.statusCode != 200) {
       _throwServerError(response);
     }
@@ -190,9 +179,7 @@ class ContentsRepositoryImpl implements ContentsRepository {
       );
     });
 
-    debugPrint(
-      '[ContentsRepo] getHint response status=${response.statusCode} contentType=${response.headers['content-type']} body=${_preview(response.body)}',
-    );
+    debugPrint('[ContentsRepo] getHint status=${response.statusCode}');
     if (response.statusCode != 200) {
       _throwServerError(response);
     }
@@ -223,9 +210,7 @@ class ContentsRepositoryImpl implements ContentsRepository {
       );
     });
 
-    debugPrint(
-      '[ContentsRepo] hasHintAccess response status=${response.statusCode} contentType=${response.headers['content-type']} body=${_preview(response.body)}',
-    );
+    debugPrint('[ContentsRepo] hasHintAccess status=${response.statusCode}');
     if (response.statusCode != 200) {
       _throwServerError(response);
     }

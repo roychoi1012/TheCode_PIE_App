@@ -145,6 +145,58 @@ class _QuizScreenState extends State<QuizScreen> {
     );
   }
 
+  Future<void> _loadAndShowHint(QuizViewModel vm) async {
+    final hint = await vm.loadHint(
+      episodeId: widget.episodeId,
+      stageNo: widget.stageNo,
+    );
+
+    if (!mounted) return;
+
+    if (hint != null) {
+      await _showHintDialog(hint.content);
+    } else if (vm.errorMessage != null) {
+      await _showResultSnackBar(vm.errorMessage!, success: false);
+    }
+  }
+
+  Future<void> _handleHintPressed(QuizViewModel vm) async {
+    final hasAccess = await vm.hasHintAccess(
+      episodeId: widget.episodeId,
+      stageNo: widget.stageNo,
+    );
+
+    if (!mounted) return;
+
+    if (hasAccess) {
+      await _loadAndShowHint(vm);
+      return;
+    }
+
+    _adManager.showAd(
+      onRewardEarned: () async {
+        final hasHintAccess = await vm.waitForHintAccess(
+          episodeId: widget.episodeId,
+          stageNo: widget.stageNo,
+          attempts: 4,
+        );
+
+        if (!mounted) return;
+
+        if (!hasHintAccess) {
+          await _showResultSnackBar(
+            vm.errorMessage ??
+                'Reward verification is pending. Please tap HINT again shortly.',
+            success: false,
+          );
+          return;
+        }
+
+        await _loadAndShowHint(vm);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -632,48 +684,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                   child: ElevatedButton(
                                     onPressed: vm.isLoadingHint
                                         ? null
-                                        : () {
-                                            _adManager.showAd(
-                                              onRewardEarned: () async {
-                                                final hasHintAccess = await vm
-                                                    .waitForHintAccess(
-                                                      episodeId:
-                                                          widget.episodeId,
-                                                      stageNo: widget.stageNo,
-                                                    );
-
-                                                if (!context.mounted) return;
-
-                                                if (!hasHintAccess) {
-                                                  await _showResultSnackBar(
-                                                    vm.errorMessage ??
-                                                        'Reward verification failed.',
-                                                    success: false,
-                                                  );
-                                                  return;
-                                                }
-
-                                                final hint = await vm.loadHint(
-                                                  episodeId: widget.episodeId,
-                                                  stageNo: widget.stageNo,
-                                                );
-
-                                                if (!context.mounted) return;
-
-                                                if (hint != null) {
-                                                  await _showHintDialog(
-                                                    hint.content,
-                                                  );
-                                                } else if (vm.errorMessage !=
-                                                    null) {
-                                                  await _showResultSnackBar(
-                                                    vm.errorMessage!,
-                                                    success: false,
-                                                  );
-                                                }
-                                              },
-                                            );
-                                          },
+                                        : () => _handleHintPressed(vm),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.white.withOpacity(
                                         0.1,

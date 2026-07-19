@@ -43,9 +43,7 @@ class ContentsRemoteDataSourceImpl implements ContentsRemoteDataSource {
   @override
   Future<http.Response> getStartStage({required String accessToken}) {
     final url = AppConstants.progressStartEndpoint;
-    debugPrint(
-      '[ContentsRemote] GET start stage url=$url tokenLen=${accessToken.length}',
-    );
+    debugPrint('[ContentsRemote] GET start stage url=$url');
     return http
         .get(
           Uri.parse(url),
@@ -65,7 +63,7 @@ class ContentsRemoteDataSourceImpl implements ContentsRemoteDataSource {
   }) {
     final url = AppConstants.completeStageEndpoint;
     debugPrint(
-      '[ContentsRemote] POST complete stage url=$url tokenLen=${accessToken.length} episodeId=$episodeId stageNo=$stageNo',
+      '[ContentsRemote] POST complete stage url=$url episodeId=$episodeId stageNo=$stageNo',
     );
     return http
         .post(
@@ -86,9 +84,7 @@ class ContentsRemoteDataSourceImpl implements ContentsRemoteDataSource {
     required int stageNo,
   }) {
     final url = AppConstants.stageEndpoint(episodeId, stageNo);
-    debugPrint(
-      '[ContentsRemote] GET stage url=$url tokenLen=${accessToken.length}',
-    );
+    debugPrint('[ContentsRemote] GET stage url=$url');
     return http
         .get(
           Uri.parse(url),
@@ -108,9 +104,7 @@ class ContentsRemoteDataSourceImpl implements ContentsRemoteDataSource {
     required String answer,
   }) {
     final url = AppConstants.answerEndpoint(episodeId, stageNo);
-    debugPrint(
-      '[ContentsRemote] POST answer url=$url tokenLen=${accessToken.length} body=${jsonEncode({'answer': answer})}',
-    );
+    debugPrint('[ContentsRemote] POST answer url=$url');
     return http
         .post(
           Uri.parse(url),
@@ -130,9 +124,7 @@ class ContentsRemoteDataSourceImpl implements ContentsRemoteDataSource {
     required int stageNo,
   }) {
     final url = AppConstants.hintEndpoint(episodeId, stageNo);
-    debugPrint(
-      '[ContentsRemote] GET hint url=$url tokenLen=${accessToken.length}',
-    );
+    debugPrint('[ContentsRemote] GET hint url=$url');
     return http
         .get(
           Uri.parse(url),
@@ -151,9 +143,7 @@ class ContentsRemoteDataSourceImpl implements ContentsRemoteDataSource {
     required int stageNo,
   }) {
     final url = AppConstants.hintAccessEndpoint(episodeId, stageNo);
-    debugPrint(
-      '[ContentsRemote] GET hint access url=$url tokenLen=${accessToken.length}',
-    );
+    debugPrint('[ContentsRemote] GET hint access url=$url');
     return http
         .get(
           Uri.parse(url),

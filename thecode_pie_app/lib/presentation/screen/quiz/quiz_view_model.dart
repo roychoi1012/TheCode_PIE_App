@@ -120,6 +120,28 @@ class QuizViewModel extends ChangeNotifier {
     }
   }
 
+  Future<bool> hasHintAccess({
+    required int episodeId,
+    required int stageNo,
+  }) async {
+    _isLoadingHint = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      return await _hasHintAccessUseCase(
+        episodeId: episodeId,
+        stageNo: stageNo,
+      );
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    } finally {
+      _isLoadingHint = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> waitForHintAccess({
     required int episodeId,
     required int stageNo,
@@ -145,7 +167,7 @@ class QuizViewModel extends ChangeNotifier {
       }
 
       _errorMessage =
-          'Reward verification is still pending. Please try HINT again shortly.';
+          'Reward verification is pending. Please tap HINT again shortly.';
       return false;
     } catch (e) {
       _errorMessage = e.toString();

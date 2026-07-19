@@ -58,3 +58,6 @@ app.*.map.json
 .env
 .env.local
 .env.*.local
+
+# Generated local config
+/lib/core/config/ad_config.g.dart
