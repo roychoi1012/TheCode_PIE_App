@@ -22,7 +22,6 @@ dependencies:
   flutter_dotenv: ^5.1.0
   audioplayers: ^6.1.0
   google_mobile_ads: ^7.0.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -35,3 +34,21 @@ flutter:
   assets:
     - .env
     - assets/audio/
+
+  fonts:
+    - family: Cafe24Supermagic
+      fonts:
+        - asset: assets/fonts/Cafe24Supermagic-Regular-v1.0.ttf
+          weight: 400
+        - asset: assets/fonts/Cafe24Supermagic-Bold-v1.0.ttf
+          weight: 700
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Pretendard-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Pretendard-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Bold.ttf
+          weight: 700

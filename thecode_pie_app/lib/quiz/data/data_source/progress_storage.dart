@@ -48,4 +48,12 @@ class ProgressStorage {
       await prefs.setInt(key, stageNo);
     }
   }
+
+  static Future<void> setLastClearedStageNo({
+    required int episodeId,
+    required int stageNo,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_clearedKey(episodeId), stageNo);
+  }
 }

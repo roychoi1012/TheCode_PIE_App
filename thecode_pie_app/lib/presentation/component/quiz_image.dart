@@ -1,44 +1,88 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
 
-/// 퀴즈 이미지 컴포넌트 (정사각형)
 class QuizImage extends StatelessWidget {
-  final String? imageUrl;
-  final bool isLoading;
-  final VoidCallback? onRefresh;
-
   const QuizImage({
     super.key,
     required this.imageUrl,
     this.isLoading = false,
     this.onRefresh,
+    this.showShadow = true,
+    this.showBorder = true,
+    this.borderWidth = 1,
+    this.borderColor,
+    this.borderRadius = 8,
   });
+
+  final String? imageUrl;
+  final bool isLoading;
+  final VoidCallback? onRefresh;
+  final bool showShadow;
+  final bool showBorder;
+  final double borderWidth;
+  final Color? borderColor;
+  final double borderRadius;
 
   @override
   Widget build(BuildContext context) {
-    // LayoutBuilder 대신 AspectRatio를 사용하여 1:1 비율 강제
+    final frameColor = borderColor ?? AppColors.crust.withValues(alpha: 0.4);
+
     return Align(
       alignment: Alignment.center,
       child: AspectRatio(
-        aspectRatio: 1.0, // 가로:세로 = 1:1 (정사각형)
+        aspectRatio: 1,
         child: Container(
+          padding: showBorder ? EdgeInsets.all(borderWidth) : EdgeInsets.zero,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.accentOrange.withOpacity(0.3),
-                blurRadius: 20,
-                spreadRadius: 2,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            color: showBorder
+                ? frameColor
+                : AppColors.surface.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(borderRadius),
+            boxShadow: showShadow
+                ? const [
+                    BoxShadow(
+                      color: Color(0x55210F20),
+                      blurRadius: 14,
+                      offset: Offset(0, 8),
+                    ),
+                  ]
+                : null,
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: imageUrl == null
-                ? const SizedBox.shrink()
-                : Image.network(imageUrl!),
+            borderRadius: BorderRadius.circular(
+              showBorder
+                  ? (borderRadius - 3).clamp(0, borderRadius)
+                  : borderRadius,
+            ),
+            child: ColoredBox(
+              color: AppColors.surface.withValues(alpha: 0.12),
+              child: imageUrl == null
+                  ? const SizedBox.shrink()
+                  : Image.network(
+                      imageUrl!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.pumpkin,
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Center(
+                          child: IconButton(
+                            onPressed: onRefresh,
+                            icon: const Icon(
+                              Icons.refresh,
+                              color: AppColors.crust,
+                              size: 32,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
           ),
         ),
       ),
