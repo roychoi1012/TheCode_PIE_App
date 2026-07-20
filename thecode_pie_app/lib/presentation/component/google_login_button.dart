@@ -45,7 +45,7 @@ class GoogleLoginButton extends StatelessWidget {
                     GoogleMark(),
                     SizedBox(width: 10),
                     Text(
-                      'Google로 계속하기',
+                      '시작하기',
                       style: TextStyle(
                         fontFamily: AppFonts.body,
                         fontSize: 15,

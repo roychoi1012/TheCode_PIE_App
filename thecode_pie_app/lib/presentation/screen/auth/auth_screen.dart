@@ -94,7 +94,7 @@ class LoginScreen extends StatelessWidget {
                               color: AppColors.textOnPumpkin,
                             ),
                           ),
-                          const SizedBox(height: 136),
+                          const SizedBox(height: 126),
                           Consumer<AuthViewModel>(
                             builder: (context, viewModel, child) {
                               return Column(
@@ -109,12 +109,6 @@ class LoginScreen extends StatelessWidget {
                                               viewModel,
                                             ),
                                       isLoading: viewModel.isLoading,
-                                    ),
-                                    const SizedBox(height: 10),
-                                    _GuestButton(
-                                      onPressed: viewModel.isLoading
-                                          ? null
-                                          : _handleGuestButton,
                                     ),
                                   ],
                                   if (viewModel.isAuthenticated) ...[
@@ -225,43 +219,6 @@ class LoginScreen extends StatelessWidget {
     } catch (_) {
       return;
     }
-  }
-
-  void _handleGuestButton() {}
-}
-
-class _GuestButton extends StatelessWidget {
-  const _GuestButton({required this.onPressed});
-
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 232,
-      height: 52,
-      child: OutlinedButton.icon(
-        onPressed: onPressed,
-        icon: const Icon(Icons.person_outline_rounded, size: 22),
-        label: const Text(
-          'Guest로 계속하기',
-          style: TextStyle(
-            fontFamily: AppFonts.body,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        style: OutlinedButton.styleFrom(
-          backgroundColor: AppColors.textOnPumpkin.withValues(alpha: 0.1),
-          foregroundColor: AppColors.textOnPumpkin,
-          side: BorderSide(
-            color: AppColors.textOnPumpkin.withValues(alpha: 0.42),
-            width: 1.3,
-          ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      ),
-    );
   }
 }
 
