@@ -18,6 +18,7 @@ import '../auth/auth_view_model.dart';
 import 'quiz_view_model.dart';
 import 'quiz_screen_root.dart';
 import '../../../providers/app_providers.dart';
+import '../../component/banner_ad_box.dart';
 import '../../component/drawing_board.dart';
 
 class QuizScreen extends StatefulWidget {
@@ -342,7 +343,7 @@ class _QuizScreenState extends State<QuizScreen>
                           context,
                         ).popUntil((route) => route.isFirst),
                       ),
-                      const SizedBox(height: 45),
+                      const SizedBox(height: 55),
                       Expanded(
                         child: vm.isLoadingStage
                             ? const _QuizLoadingView()
@@ -745,7 +746,23 @@ class _BannerAdReserve extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(height: 56);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Transform.translate(
+        offset: const Offset(0, 16),
+        child: OverflowBox(
+          minWidth: screenWidth,
+          maxWidth: screenWidth,
+          alignment: Alignment.bottomCenter,
+          child: SizedBox(
+            width: screenWidth,
+            child: BannerAdBox(width: screenWidth),
+          ),
+        ),
+      ),
+    );
   }
 }
 
