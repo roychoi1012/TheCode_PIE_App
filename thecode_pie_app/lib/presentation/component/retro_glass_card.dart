@@ -1,30 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
 
-/// 레트로 스타일 글래스모피즘 카드 위젯
 class RetroGlassCard extends StatelessWidget {
-  const RetroGlassCard({super.key, required this.child});
+  const RetroGlassCard({
+    super.key,
+    required this.child,
+    this.width = 420,
+    this.padding = const EdgeInsets.symmetric(horizontal: 22, vertical: 24),
+    this.borderColor,
+  });
 
   final Widget child;
+  final double? width;
+  final EdgeInsetsGeometry padding;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 420,
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 26),
+      width: width,
+      padding: padding,
       decoration: BoxDecoration(
         color: AppColors.glassCardBackground,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: AppColors.glassCardBorder.withOpacity(0.45),
-          width: 1.4,
+          color: borderColor ?? AppColors.crust.withValues(alpha: 0.62),
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: AppColors.accentOrangeShadow,
+            color: Color(0x55210F20),
             blurRadius: 18,
-            spreadRadius: 2,
-            offset: const Offset(0, 10),
+            offset: Offset(0, 10),
           ),
         ],
       ),

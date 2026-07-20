@@ -197,12 +197,10 @@ class QuizViewModel extends ChangeNotifier {
         episodeId: start.episodeId,
         stageNo: start.stageNo,
       );
-      if (start.highestStageNo != null) {
-        await ProgressStorage.markStageCleared(
-          episodeId: start.episodeId,
-          stageNo: start.highestStageNo!,
-        );
-      }
+      await ProgressStorage.setLastClearedStageNo(
+        episodeId: start.episodeId,
+        stageNo: start.stageNo > 1 ? start.stageNo - 1 : 0,
+      );
       debugPrint(
         '[QuizVM] using server start episodeId=${start.episodeId} episodeCode=${start.episodeCode} stageNo=${start.stageNo}',
       );
@@ -231,7 +229,7 @@ class QuizViewModel extends ChangeNotifier {
       );
       await ProgressStorage.markStageCleared(
         episodeId: progress.episodeId,
-        stageNo: progress.highestStageNo,
+        stageNo: progress.stageNo,
       );
       return progress;
     } catch (e) {

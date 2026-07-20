@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:thecode_pie_app/core/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/constants/app_fonts.dart';
 
-/// 구글 로그인 아이콘 버튼 위젯
 class GoogleLoginButton extends StatelessWidget {
   const GoogleLoginButton({
     super.key,
@@ -14,141 +14,98 @@ class GoogleLoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: isLoading ? null : onPressed,
-      child: Container(
-        width: 90,
-        height: 90,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const LinearGradient(
-            colors: [Color(0xFF7C3AED), Color(0xFF22D3EE)], // 구글 브랜드 색상 유지
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Material(
+      color: Colors.white.withValues(alpha: 0.8),
+      elevation: 3,
+      shadowColor: const Color(0x332F2330),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: isLoading ? null : onPressed,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 232,
+          height: 52,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFFE7E1DB)),
           ),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x804B2DFA), // 구글 브랜드 그림자 색상
-              blurRadius: 20,
-              spreadRadius: 2,
-              offset: Offset(0, 8),
-            ),
-          ],
-        ),
-        child: isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 3,
-                ),
-              )
-            : Container(
-                margin: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                ),
-                child: Center(
-                  child: CustomPaint(
-                    size: const Size(60, 60),
-                    painter: _GoogleLogoPainter(),
+          alignment: Alignment.center,
+          child: isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: AppColors.pumpkin,
                   ),
+                )
+              : const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GoogleMark(),
+                    SizedBox(width: 10),
+                    Text(
+                      'Google로 계속하기',
+                      style: TextStyle(
+                        fontFamily: AppFonts.body,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textOnLight,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
+        ),
       ),
     );
   }
 }
 
-/// 구글 로고를 그리는 CustomPainter
+class GoogleMark extends StatelessWidget {
+  const GoogleMark({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 30,
+      height: 30,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white,
+        border: Border.fromBorderSide(BorderSide(color: Color(0xFFE1D9D0))),
+      ),
+      alignment: Alignment.center,
+      child: CustomPaint(
+        size: const Size(18, 18),
+        painter: _GoogleLogoPainter(),
+      ),
+    );
+  }
+}
+
 class _GoogleLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..style = PaintingStyle.fill;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.2
+      ..strokeCap = StrokeCap.round;
 
-    // 구글 컬러
-    final colors = [
-      const Color(0xFF4285F4), // Blue
-      const Color(0xFF34A853), // Green
-      const Color(0xFFFBBC04), // Yellow
-      const Color(0xFFEA4335), // Red
-    ];
+    final rect = Rect.fromLTWH(2, 2, size.width - 4, size.height - 4);
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawArc(rect, -0.2, 1.55, false, paint);
+    paint.color = const Color(0xFF34A853);
+    canvas.drawArc(rect, 1.25, 1.25, false, paint);
+    paint.color = const Color(0xFFFBBC04);
+    canvas.drawArc(rect, 2.4, 1.3, false, paint);
+    paint.color = const Color(0xFFEA4335);
+    canvas.drawArc(rect, 3.55, 1.4, false, paint);
 
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width * 0.35;
-
-    // 구글 로고는 G 글자 형태로 4개의 컬러를 사용
-    // 간단하게 원형 그라데이션으로 표현
-    final rect = Rect.fromCircle(center: center, radius: radius);
-
-    // 파란색 (우측 상단)
-    paint.color = colors[0];
-    canvas.drawArc(
-      rect,
-      -3.14159 / 2, // -90도
-      3.14159 / 2, // 90도
-      false,
-      paint
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 8,
-    );
-
-    // 초록색 (우측 하단)
-    paint.color = colors[1];
-    canvas.drawArc(
-      rect,
-      0, // 0도
-      3.14159 / 2, // 90도
-      false,
-      paint
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 8,
-    );
-
-    // 노란색 (좌측 하단)
-    paint.color = colors[2];
-    canvas.drawArc(
-      rect,
-      3.14159 / 2, // 90도
-      3.14159 / 2, // 90도
-      false,
-      paint
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 8,
-    );
-
-    // 빨간색 (좌측 상단 일부)
-    paint.color = colors[3];
-    canvas.drawArc(
-      rect,
-      3.14159, // 180도
-      3.14159 / 2, // 90도
-      false,
-      paint
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 8,
-    );
-
-    // 중앙에 G 글자
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: 'G',
-        style: GoogleFonts.roboto(
-          fontSize: size.width * 0.5,
-          fontWeight: FontWeight.w500,
-          color: const Color(0xFF4285F4),
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-      textAlign: TextAlign.center,
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        center.dx - textPainter.width / 2,
-        center.dy - textPainter.height / 2,
-      ),
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawLine(
+      Offset(size.width * 0.55, size.height * 0.5),
+      Offset(size.width - 2, size.height * 0.5),
+      paint,
     );
   }
 

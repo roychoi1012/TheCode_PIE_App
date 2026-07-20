@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
 import 'package:thecode_pie_app/core/constants/app_constants.dart';
+import 'package:thecode_pie_app/core/constants/app_fonts.dart';
 import 'package:thecode_pie_app/presentation/component/google_login_button.dart';
 import 'package:thecode_pie_app/presentation/component/retro_background.dart';
-import 'package:thecode_pie_app/presentation/component/retro_glass_card.dart';
-import 'package:thecode_pie_app/presentation/component/settings_dialog.dart';
+import 'package:thecode_pie_app/presentation/component/settings_button.dart';
 
-import 'auth_view_model.dart';
 import '../../../providers/app_providers.dart';
-import '../quiz/quiz_view_model.dart';
 import '../quiz/quiz_screen_root.dart';
+import '../quiz/quiz_view_model.dart';
+import '../stage_select/stage_select_screen.dart';
+import 'auth_view_model.dart';
 
-/// 로그인 화면 (최종본)
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
@@ -26,223 +25,143 @@ class LoginScreen extends StatelessWidget {
           SafeArea(
             child: Stack(
               children: [
-                // 버전 표시 (우상단)
                 Positioned(
-                  top: 16,
-                  right: 24,
+                  top: 14,
+                  left: 20,
                   child: Text(
                     'v${AppConstants.appVersion}',
-                    style: GoogleFonts.pressStart2p(
-                      fontSize: 8,
-                      color: AppColors.textTertiary,
-                      letterSpacing: 2,
+                    style: TextStyle(
+                      fontFamily: AppFonts.body,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      color: AppColors.textOnPumpkin.withValues(alpha: 0.68),
                     ),
                   ),
                 ),
-
-                // 메인 컨텐츠
-                Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 32,
+                Positioned(top: 10, right: 10, child: const SettingsButton()),
+                Positioned(
+                  right: 20,
+                  bottom: 14,
+                  child: Text(
+                    '© 2026 Clavis',
+                    style: TextStyle(
+                      fontFamily: AppFonts.body,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      color: AppColors.textOnPumpkin.withValues(alpha: 0.68),
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'PIE',
-                          style: GoogleFonts.pressStart2p(
-                            fontSize: 50,
-                            color: AppColors.textPrimary,
-                            letterSpacing: 2,
-                            shadows: [
-                              Shadow(
-                                color: AppColors.accentOrange,
-                                blurRadius: 12,
-                                offset: Offset(0, 0),
-                              ),
-                            ],
+                  ),
+                ),
+                Center(
+                  child: Transform.translate(
+                    offset: const Offset(0, -24),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 32,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'PIE',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: AppFonts.title,
+                              fontSize: 72,
+                              fontWeight: FontWeight.w700,
+                              height: 0.92,
+                              color: AppColors.textOnPumpkin,
+                              shadows: [
+                                Shadow(
+                                  color: Color(0x55FFF8EC),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 18),
-                        Text(
-                          'THE CODE',
-                          style: GoogleFonts.pressStart2p(
-                            fontSize: 20,
-                            color: AppColors.textSecondary,
-                            letterSpacing: 6,
+                          const SizedBox(height: 12),
+                          const Text(
+                            'THE CODE',
+                            style: TextStyle(
+                              fontFamily: AppFonts.body,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 4,
+                              color: AppColors.textOnPumpkin,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 48),
-
-                        Consumer<AuthViewModel>(
-                          builder: (context, viewModel, child) {
-                            return RetroGlassCard(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                          const SizedBox(height: 136),
+                          Consumer<AuthViewModel>(
+                            builder: (context, viewModel, child) {
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  // 로그인 전 UI
                                   if (!viewModel.isAuthenticated) ...[
-                                    Text(
-                                      'GOOGLE LOGIN',
-                                      style: GoogleFonts.pressStart2p(
-                                        fontSize: 14,
-                                        color: AppColors.accentOrange,
-                                      ),
-                                      textAlign: TextAlign.center,
+                                    GoogleLoginButton(
+                                      onPressed: viewModel.isLoading
+                                          ? null
+                                          : () => _handleGoogleLogin(
+                                              context,
+                                              viewModel,
+                                            ),
+                                      isLoading: viewModel.isLoading,
                                     ),
-                                    const SizedBox(height: 32),
-                                    Center(
-                                      child: GoogleLoginButton(
-                                        onPressed: viewModel.isLoading
-                                            ? null
-                                            : () => _handleGoogleLogin(
-                                                context,
-                                                viewModel,
-                                              ),
-                                        isLoading: viewModel.isLoading,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    Text(
-                                      'CLICK GOOGLE ICON TO LOGIN',
-                                      style: GoogleFonts.pressStart2p(
-                                        fontSize: 9,
-                                        color: AppColors.accentOrange,
-                                        height: 1.6,
-                                      ),
-                                      textAlign: TextAlign.center,
+                                    const SizedBox(height: 10),
+                                    _GuestButton(
+                                      onPressed: viewModel.isLoading
+                                          ? null
+                                          : _handleGuestButton,
                                     ),
                                   ],
-                                  // 로그인 후 UI
-                                  if (viewModel.isAuthenticated &&
-                                      viewModel.currentUser != null) ...[
-                                    // 사용자 이름과 버튼들
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            viewModel.currentUser!.username ??
-                                                viewModel.currentUser!.name ??
-                                                viewModel.currentUser!.email,
-                                            style: GoogleFonts.pressStart2p(
-                                              fontSize: 12,
-                                              color: AppColors.accentOrange,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            IconButton(
-                                              onPressed: () async {
-                                                await viewModel.signOut();
-                                                if (context.mounted) {
-                                                  ScaffoldMessenger.of(
-                                                    context,
-                                                  ).showSnackBar(
-                                                    SnackBar(
-                                                      content: const Text(
-                                                        '로그아웃되었습니다.',
-                                                      ),
-                                                      backgroundColor: AppColors
-                                                          .accentOrange,
-                                                    ),
-                                                  );
-                                                }
-                                              },
-                                              icon: const Icon(
-                                                Icons.logout,
-                                                color: AppColors.accentOrange,
-                                              ),
-                                              padding: EdgeInsets.zero,
-                                              constraints:
-                                                  const BoxConstraints(),
-                                              tooltip: '로그아웃',
-                                            ),
-                                            const SizedBox(width: 8),
-                                            IconButton(
-                                              onPressed: () =>
-                                                  _showSettingsDialog(context),
-                                              icon: const Icon(
-                                                Icons.settings,
-                                                color: AppColors.accentOrange,
-                                              ),
-                                              padding: EdgeInsets.zero,
-                                              constraints:
-                                                  const BoxConstraints(),
-                                              tooltip: '설정',
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 32),
-                                    ElevatedButton(
+                                  if (viewModel.isAuthenticated) ...[
+                                    _HomeButton(
+                                      label: 'START',
+                                      icon: Icons.play_arrow_rounded,
+                                      filled: true,
+                                      isBusy: viewModel.isLoading,
                                       onPressed: viewModel.isLoading
                                           ? null
                                           : () => _handleStartButton(
                                               context,
                                               viewModel,
                                             ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.accentOrange,
-                                        foregroundColor: AppColors.textPrimary,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 48,
-                                          vertical: 16,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        elevation: 8,
-                                        shadowColor:
-                                            AppColors.accentOrangeShadow,
-                                      ),
-                                      child: Text(
-                                        'START',
-                                        style: GoogleFonts.pressStart2p(
-                                          fontSize: 16,
-                                          letterSpacing: 2,
-                                        ),
-                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    _HomeButton(
+                                      label: 'STAGE SELECT',
+                                      icon: Icons.grid_view_rounded,
+                                      onPressed: () =>
+                                          _handleStageSelectButton(context),
                                     ),
                                   ],
-                                  // 에러 메시지
                                   if (viewModel.errorMessage != null) ...[
                                     const SizedBox(height: 16),
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: Colors.red.withOpacity(0.5),
-                                        ),
+                                    ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 280,
                                       ),
                                       child: Text(
                                         viewModel.errorMessage!,
-                                        style: GoogleFonts.pressStart2p(
-                                          fontSize: 8,
-                                          color: Colors.red.shade300,
-                                        ),
                                         textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontFamily: AppFonts.body,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.textOnPumpkin,
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ],
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -254,31 +173,13 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  /// 실제 Google 로그인 처리
   Future<void> _handleGoogleLogin(
     BuildContext context,
     AuthViewModel viewModel,
   ) async {
-    final success = await viewModel.signInWithGoogle();
-
-    if (!context.mounted) return;
-
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('로그인 성공!'),
-          backgroundColor: AppColors.accentOrange,
-        ),
-      );
-    } else if (viewModel.errorMessage == null) {
-      // 사용자가 로그인 취소
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('로그인이 취소되었습니다.')));
-    }
+    await viewModel.signInWithGoogle();
   }
 
-  /// START 버튼 처리 (바로 퀴즈 화면으로 이동)
   Future<void> _handleStartButton(
     BuildContext context,
     AuthViewModel viewModel,
@@ -287,10 +188,6 @@ class LoginScreen extends StatelessWidget {
       final quizViewModel = Provider.of<QuizViewModel>(context, listen: false);
       final start = await quizViewModel.resolveStartProgress();
       if (!context.mounted) return;
-
-      debugPrint(
-        '[LoginScreen] START pressed. navigating to QuizScreen ep=${start.episodeId} code=${start.episodeCode} stage=${start.stageNo}',
-      );
 
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -304,34 +201,150 @@ class LoginScreen extends StatelessWidget {
           ),
         ),
       );
-    } catch (e) {
-      if (!context.mounted) return;
-
-      debugPrint('[LoginScreen] START handler exception: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('오류 발생: ${e.toString()}'),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+    } catch (_) {
+      return;
     }
   }
 
-  /// 설정 다이얼로그 표시
-  void _showSettingsDialog(BuildContext context) {
-    // Provider에서 사용자 ID 가져오기
-    final viewModel = Provider.of<AuthViewModel>(context, listen: false);
-    final userId = viewModel.currentUser?.id;
+  Future<void> _handleStageSelectButton(BuildContext context) async {
+    try {
+      final quizViewModel = Provider.of<QuizViewModel>(context, listen: false);
+      final start = await quizViewModel.resolveStartProgress();
+      if (!context.mounted) return;
 
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.5),
-      useRootNavigator: false, // 같은 Navigator 트리 사용
-      builder: (BuildContext dialogContext) {
-        // 사용자 ID를 직접 전달
-        return SettingsDialog(userId: userId);
-      },
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => StageSelectScreen(
+            episodeId: start.episodeId,
+            episodeCode: start.episodeCode,
+            currentStageNo: start.stageNo,
+            highestStageNo: start.highestStageNo ?? start.stageNo,
+          ),
+        ),
+      );
+    } catch (_) {
+      return;
+    }
+  }
+
+  void _handleGuestButton() {}
+}
+
+class _GuestButton extends StatelessWidget {
+  const _GuestButton({required this.onPressed});
+
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 232,
+      height: 52,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.person_outline_rounded, size: 22),
+        label: const Text(
+          'Guest로 계속하기',
+          style: TextStyle(
+            fontFamily: AppFonts.body,
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          backgroundColor: AppColors.textOnPumpkin.withValues(alpha: 0.1),
+          foregroundColor: AppColors.textOnPumpkin,
+          side: BorderSide(
+            color: AppColors.textOnPumpkin.withValues(alpha: 0.42),
+            width: 1.3,
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeButton extends StatelessWidget {
+  const _HomeButton({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    this.filled = false,
+    this.isBusy = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final bool filled;
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = isBusy
+        ? const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: AppColors.textOnPumpkin,
+            ),
+          )
+        : Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 21),
+              const SizedBox(width: 8),
+              Text(label),
+            ],
+          );
+
+    final textStyle = TextStyle(
+      fontFamily: filled ? AppFonts.title : AppFonts.body,
+      fontSize: filled ? 22 : 14,
+      fontWeight: FontWeight.w800,
+      letterSpacing: filled ? 1.2 : 1,
+    );
+
+    if (filled) {
+      return SizedBox(
+        width: 232,
+        height: 54,
+        child: ElevatedButton(
+          onPressed: onPressed,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white.withValues(alpha: 0.84),
+            foregroundColor: AppColors.textOnLight,
+            elevation: 3,
+            shadowColor: const Color(0x332F2330),
+            textStyle: textStyle,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: child,
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: 232,
+      height: 52,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textOnPumpkin,
+          textStyle: textStyle,
+          side: BorderSide(
+            color: AppColors.textOnPumpkin.withValues(alpha: 0.48),
+            width: 1.4,
+          ),
+          backgroundColor: AppColors.textOnPumpkin.withValues(alpha: 0.08),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        child: child,
+      ),
     );
   }
 }

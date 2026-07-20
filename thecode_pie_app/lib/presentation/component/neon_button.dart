@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/constants/app_fonts.dart';
 
-/// 네온 효과 버튼 위젯
 class NeonButton extends StatelessWidget {
   const NeonButton({
     super.key,
@@ -17,35 +16,22 @@ class NeonButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.accentOrange, AppColors.accentOrangeDark],
-        ),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.accentOrangeShadow,
-            blurRadius: 18,
-            spreadRadius: 1,
-            offset: const Offset(0, 6),
-          ),
-        ],
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.pumpkin,
+        foregroundColor: AppColors.textOnPumpkin,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 0,
       ),
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        icon: Icon(icon, color: Colors.black87),
-        label: Text(
-          label,
-          style: GoogleFonts.pressStart2p(fontSize: 12, color: Colors.black87),
+      icon: Icon(icon, color: AppColors.textOnPumpkin),
+      label: Text(
+        label,
+        style: const TextStyle(
+          fontFamily: AppFonts.body,
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );

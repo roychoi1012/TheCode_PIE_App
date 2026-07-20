@@ -1,30 +1,35 @@
 import 'package:flutter/material.dart';
 
-/// 앱 색상 상수
 class AppColors {
-  // 배경 색상 (오렌지 테마)
-  static const Color darkBackground = Color(0xFFE0852B); // 메인 오렌지
-  static const Color darkBackgroundSecondary = Color(0xFFD67A20); // 약간 어두운 오렌지
-  static const Color darkBackgroundTertiary = Color(0xFFCC6F15); // 더 어두운 오렌지
+  static const Color pumpkin = Color(0xFFEE7B30);
+  static const Color plum = Color(0xFF885A89);
+  static const Color sage = Color(0xFF8AA8A1);
+  static const Color lavender = Color(0xFFCBCBD4);
+  static const Color crust = Color(0xFFD1B490);
 
-  // 글래스모피즘 카드
-  static const Color glassCardBackground = Color(0xCCF8F5E5); // 크림색 반투명
-  static const Color glassCardBorder = Color(0xFFE0852B); // 오렌지 테두리
+  static const Color darkBackground = pumpkin;
+  static const Color darkBackgroundSecondary = pumpkin;
+  static const Color darkBackgroundTertiary = pumpkin;
 
-  // 액센트 색상
-  static const Color accentOrange = Color(0xFFE0852B);
-  static const Color accentOrangeDark = Color(0xFFCC6F15);
-  static const Color accentOrangeShadow = Color(0x80E0852B);
+  static const Color surface = Color(0xFFF3E7D3);
+  static const Color surfaceMuted = Color(0xFFE7D2B2);
+  static const Color surfaceDark = Color(0xFF3B2638);
+  static const Color surfaceOverlay = Color(0xE6301F2D);
 
-  // 텍스트 색상 (크림색)
-  static const Color textPrimary = Color(0xFFF8F5E5); // 크림색
-  static const Color textSecondary = Color(0xE6F8F5E5); // 크림색 90%
-  static const Color textTertiary = Color(0xB3F8F5E5); // 크림색 70%
+  static const Color glassCardBackground = surfaceOverlay;
+  static const Color glassCardBorder = crust;
 
-  // 그리드 색상
-  static const Color gridColor = Color(0x40F8F5E5); // 크림색 반투명
+  static const Color accentOrange = pumpkin;
+  static const Color accentOrangeDark = Color(0xFFC95F1B);
+  static const Color accentOrangeShadow = Color(0x66EE7B30);
 
-  // 글로우 원 색상 (투명도 포함)
-  static Color glowOrange = accentOrange.withOpacity(0.3);
-  static Color glowCream = textPrimary.withOpacity(0.2);
+  static const Color textPrimary = Color(0xFFFFF8EC);
+  static const Color textSecondary = lavender;
+  static const Color textTertiary = Color(0xFFD1B490);
+  static const Color textOnPumpkin = Color(0xFF24160D);
+  static const Color textOnLight = Color(0xFF2F2330);
+
+  static const Color success = sage;
+  static const Color danger = Color(0xFFE06A5F);
+  static const Color gridColor = Color(0x24D1B490);
 }

@@ -1,13 +1,19 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/constants/app_fonts.dart';
 import 'package:thecode_pie_app/core/services/ad_manager_service.dart';
+import 'package:thecode_pie_app/quiz/domain/model/stage_info_model.dart';
 import 'package:thecode_pie_app/quiz/data/data_source/progress_storage.dart';
 
 import '../../component/retro_background.dart';
 import '../../component/retro_glass_card.dart';
+import '../../component/premium_purchase_dialog.dart';
 import '../../component/quiz_image.dart';
+import '../../component/settings_button.dart';
 import '../auth/auth_view_model.dart';
 import 'quiz_view_model.dart';
 import 'quiz_screen_root.dart';
@@ -30,10 +36,19 @@ class QuizScreen extends StatefulWidget {
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
-class _QuizScreenState extends State<QuizScreen> {
+class _QuizScreenState extends State<QuizScreen>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final TextEditingController _answerController = TextEditingController();
-  int _lastClearedStageNo = 0;
+  final FocusNode _answerFocusNode = FocusNode();
+  final DrawingBoardController _drawingController = DrawingBoardController();
+  final GlobalKey _stackKey = GlobalKey();
+  final GlobalKey _questionAreaKey = GlobalKey();
+  final GlobalKey _imageAreaKey = GlobalKey();
+  Rect? _drawingBounds;
+  double _drawingStrokeScale = 1.0;
   bool _hasLoadedStage = false;
+  bool _showWrongAnswer = false;
+  late final AnimationController _wrongAnswerController;
 
   final AdManagerService _adManager = AdManagerService();
 
@@ -60,18 +75,16 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   void initState() {
     super.initState();
-    // 화면 진입 시점도 "마지막으로 푼 곳"으로 간주하여 저장
+    WidgetsBinding.instance.addObserver(this);
+    _wrongAnswerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 360),
+    );
+    // ?붾㈃ 吏꾩엯 ?쒖젏??"留덉?留됱쑝濡???怨??쇰줈 媛꾩＜?섏뿬 ???
     ProgressStorage.saveLastProgress(
       episodeId: widget.episodeId,
       stageNo: widget.stageNo,
     );
-
-    ProgressStorage.getLastClearedStageNo(episodeId: widget.episodeId).then((
-      value,
-    ) {
-      if (!mounted) return;
-      setState(() => _lastClearedStageNo = value);
-    });
 
     final currentUser = Provider.of<AuthViewModel>(
       context,
@@ -90,30 +103,45 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _answerController.dispose();
+    _answerFocusNode.dispose();
+    _wrongAnswerController.dispose();
+    _drawingController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncDrawingBounds();
+    });
   }
 
   Future<void> _showHintDialog(String hint) async {
     return showDialog<void>(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.55),
+      barrierColor: Colors.black.withValues(alpha: 0.62),
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF141414),
+        backgroundColor: AppColors.surfaceDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         title: Text(
           'HINT',
-          style: GoogleFonts.pressStart2p(
-            fontSize: 12,
-            color: AppColors.accentOrange,
-            letterSpacing: 2,
+          style: TextStyle(
+            fontFamily: AppFonts.title,
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            color: AppColors.crust,
           ),
         ),
         content: Text(
           hint,
-          style: GoogleFonts.pressStart2p(
-            fontSize: 10,
+          style: TextStyle(
+            fontFamily: AppFonts.body,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
             color: AppColors.textSecondary,
-            height: 1.6,
+            height: 1.45,
           ),
         ),
         actions: [
@@ -121,26 +149,15 @@ class _QuizScreenState extends State<QuizScreen> {
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
               'OK',
-              style: GoogleFonts.pressStart2p(
-                fontSize: 10,
-                color: AppColors.accentOrange,
+              style: TextStyle(
+                fontFamily: AppFonts.body,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.pumpkin,
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Future<void> _showResultSnackBar(
-    String message, {
-    required bool success,
-  }) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: success ? AppColors.accentOrange : Colors.red,
-        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -155,21 +172,27 @@ class _QuizScreenState extends State<QuizScreen> {
 
     if (hint != null) {
       await _showHintDialog(hint.content);
-    } else if (vm.errorMessage != null) {
-      await _showResultSnackBar(vm.errorMessage!, success: false);
     }
   }
 
-  Future<void> _handleHintPressed(QuizViewModel vm) async {
-    final hasAccess = await vm.hasHintAccess(
-      episodeId: widget.episodeId,
-      stageNo: widget.stageNo,
+  Future<_HintAccessAction?> _showHintAccessDialog() {
+    return showDialog<_HintAccessAction>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.58),
+      builder: (_) => const _HintAccessDialog(),
     );
+  }
 
-    if (!mounted) return;
+  Future<void> _handleHintPressed(QuizViewModel vm) async {
+    final action = await _showHintAccessDialog();
+    if (!mounted || action == null) return;
 
-    if (hasAccess) {
-      await _loadAndShowHint(vm);
+    if (action == _HintAccessAction.premium) {
+      await showDialog<void>(
+        context: context,
+        barrierColor: Colors.black.withValues(alpha: 0.55),
+        builder: (_) => const PremiumPurchaseDialog(),
+      );
       return;
     }
 
@@ -184,11 +207,6 @@ class _QuizScreenState extends State<QuizScreen> {
         if (!mounted) return;
 
         if (!hasHintAccess) {
-          await _showResultSnackBar(
-            vm.errorMessage ??
-                'Reward verification is pending. Please tap HINT again shortly.',
-            success: false,
-          );
           return;
         }
 
@@ -197,16 +215,96 @@ class _QuizScreenState extends State<QuizScreen> {
     );
   }
 
+  Future<void> _submitAnswer(QuizViewModel vm) async {
+    final answer = _answerController.text.trim();
+    if (answer.isEmpty) return;
+
+    final result = await vm.submitAnswer(
+      episodeId: widget.episodeId,
+      stageNo: widget.stageNo,
+      answer: answer,
+    );
+    if (!mounted || result == null) return;
+
+    _answerController.clear();
+
+    if (!result.isCorrect) {
+      await _triggerWrongAnswerFeedback();
+      return;
+    }
+
+    final progress = await vm.completeStage(
+      episodeId: widget.episodeId,
+      stageNo: widget.stageNo,
+    );
+    if (!mounted || progress == null) return;
+
+    final next = progress.nextStageNo;
+    if (next != null) {
+      await _goToStage(stageNo: next);
+    }
+  }
+
+  Future<void> _triggerWrongAnswerFeedback() async {
+    if (_showWrongAnswer) return;
+
+    setState(() => _showWrongAnswer = true);
+    _wrongAnswerController.repeat();
+
+    await Future.delayed(const Duration(seconds: 1));
+    if (!mounted) return;
+
+    _wrongAnswerController
+      ..stop()
+      ..reset();
+    setState(() => _showWrongAnswer = false);
+  }
+
+  void _reloadStage(QuizViewModel vm) {
+    vm.loadStage(episodeId: widget.episodeId, stageNo: widget.stageNo);
+  }
+
+  void _syncDrawingBounds() {
+    final stackContext = _stackKey.currentContext;
+    final imageContext = _imageAreaKey.currentContext;
+    if (stackContext == null || imageContext == null) return;
+
+    final stackBox = stackContext.findRenderObject() as RenderBox?;
+    final imageBox = imageContext.findRenderObject() as RenderBox?;
+    if (stackBox == null || imageBox == null || !imageBox.hasSize) {
+      return;
+    }
+
+    final transform = imageBox.getTransformTo(stackBox);
+    final nextBounds = MatrixUtils.transformRect(
+      transform,
+      Offset.zero & imageBox.size,
+    );
+    final nextStrokeScale = imageBox.size.width == 0
+        ? 1.0
+        : (nextBounds.width / imageBox.size.width).clamp(0.1, 1.0);
+    if (_drawingBounds == nextBounds &&
+        _drawingStrokeScale == nextStrokeScale) {
+      return;
+    }
+    setState(() {
+      _drawingBounds = nextBounds;
+      _drawingStrokeScale = nextStrokeScale;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
+        key: _stackKey,
         children: [
           const RetroBackground(),
           SafeArea(
             child: Consumer<QuizViewModel>(
               builder: (context, vm, _) {
-                // Consumer 내부에서 한 번만 loadStage 호출
+                // Consumer ?대??먯꽌 ??踰덈쭔 loadStage ?몄텧
                 if (!_hasLoadedStage &&
                     vm.stage == null &&
                     !vm.isLoadingStage) {
@@ -222,10 +320,11 @@ class _QuizScreenState extends State<QuizScreen> {
                 }
 
                 final stage = vm.stage;
-                final canGoPrev = widget.stageNo > 1;
-                final canGoNext =
-                    stage?.nextStageNo != null &&
-                    _lastClearedStageNo >= widget.stageNo;
+                if (stage != null && !vm.isLoadingStage) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) _syncDrawingBounds();
+                  });
+                }
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(
@@ -235,556 +334,36 @@ class _QuizScreenState extends State<QuizScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // 상단 헤더
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.accentOrange.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            IconButton(
-                              onPressed: () => Navigator.of(context).maybePop(),
-                              icon: const Icon(
-                                Icons.arrow_back,
-                                color: AppColors.accentOrange,
-                                size: 24,
-                              ),
-                              tooltip: '뒤로',
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    stage != null
-                                        ? 'STAGE ${stage.stageNo}'
-                                        : 'STAGE ${widget.stageNo}',
-                                    style: GoogleFonts.pressStart2p(
-                                      fontSize: 14,
-                                      color: AppColors.accentOrange,
-                                      letterSpacing: 2,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'EPISODE ${widget.episodeId}',
-                                    style: GoogleFonts.pressStart2p(
-                                      fontSize: 8,
-                                      color: AppColors.textTertiary,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                      _QuizTopBar(
+                        drawingController: _drawingController,
+                        isLoadingHint: vm.isLoadingHint,
+                        onHint: () => _handleHintPressed(vm),
+                        onHome: () => Navigator.of(
+                          context,
+                        ).popUntil((route) => route.isFirst),
                       ),
-                      const SizedBox(height: 12),
-
+                      const SizedBox(height: 45),
                       Expanded(
-                        child: RetroGlassCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              if (vm.isLoadingStage) ...[
-                                const SizedBox(height: 12),
-                                const Center(
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.accentOrange,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                              ] else if (stage == null) ...[
-                                Text(
-                                  '스테이지 정보를 불러오지 못했습니다.',
-                                  style: GoogleFonts.pressStart2p(
-                                    fontSize: 10,
-                                    color: AppColors.textSecondary,
-                                    height: 1.6,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                if (vm.errorMessage != null) ...[
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    vm.errorMessage!,
-                                    style: GoogleFonts.pressStart2p(
-                                      fontSize: 8,
-                                      color: Colors.red.shade300,
-                                      height: 1.6,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                                const SizedBox(height: 16),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    vm.loadStage(
-                                      episodeId: widget.episodeId,
-                                      stageNo: widget.stageNo,
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.accentOrange,
-                                    foregroundColor: AppColors.textPrimary,
-                                  ),
-                                  child: Text(
-                                    'RETRY',
-                                    style: GoogleFonts.pressStart2p(
-                                      fontSize: 12,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                ),
-                              ] else ...[
-                                const SizedBox(height: 8),
-                                // 스테이지 타이틀
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        AppColors.accentOrange.withOpacity(0.2),
-                                        AppColors.accentOrange.withOpacity(
-                                          0.05,
-                                        ),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: AppColors.accentOrange.withOpacity(
-                                        0.3,
-                                      ),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    stage.title,
-                                    style: GoogleFonts.pressStart2p(
-                                      fontSize: 16,
-                                      color: AppColors.accentOrange,
-                                      letterSpacing: 2,
-                                      shadows: [
-                                        Shadow(
-                                          color: AppColors.accentOrange
-                                              .withOpacity(0.5),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 0),
-                                        ),
-                                      ],
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                // 이미지 컨테이너 (정사각형, 크게)
-                                Expanded(
-                                  child: QuizImage(
-                                    imageUrl: stage.imageUrl,
-                                    isLoading: vm.isLoadingStage,
-                                    onRefresh: () {
-                                      vm.loadStage(
-                                        episodeId: widget.episodeId,
-                                        stageNo: widget.stageNo,
-                                      );
-                                    },
-                                  ),
-                                ),
-                                // 답변 입력 필드 (하단 고정)
-                                Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppColors.accentOrange
-                                            .withOpacity(0.2),
-                                        blurRadius: 12,
-                                        spreadRadius: 1,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: TextField(
-                                    controller: _answerController,
-                                    enabled: !vm.isSubmitting,
-                                    textCapitalization:
-                                        TextCapitalization.characters,
-                                    style: GoogleFonts.pressStart2p(
-                                      fontSize: 14,
-                                      color: AppColors.textPrimary,
-                                      letterSpacing: 2,
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText: 'ENTER ANSWER',
-                                      hintStyle: GoogleFonts.pressStart2p(
-                                        fontSize: 10,
-                                        color: AppColors.textTertiary,
-                                        letterSpacing: 1,
-                                      ),
-                                      filled: true,
-                                      fillColor: Colors.black.withOpacity(0.4),
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 20,
-                                            vertical: 18,
-                                          ),
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(16),
-                                        borderSide: BorderSide(
-                                          color: AppColors.accentOrange
-                                              .withOpacity(0.5),
-                                          width: 2,
-                                        ),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(16),
-                                        borderSide: BorderSide(
-                                          color: AppColors.accentOrange
-                                              .withOpacity(0.5),
-                                          width: 2,
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(16),
-                                        borderSide: const BorderSide(
-                                          color: AppColors.accentOrange,
-                                          width: 2.5,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                // 네비게이션 및 제출 버튼
-                                Row(
-                                  children: [
-                                    // 왼쪽: 이전 문제 (있을 때만)
-                                    if (canGoPrev)
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withOpacity(0.3),
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          border: Border.all(
-                                            color: AppColors.accentOrange
-                                                .withOpacity(0.5),
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        child: IconButton(
-                                          onPressed: vm.isSubmitting
-                                              ? null
-                                              : () => _goToStage(
-                                                  stageNo: widget.stageNo - 1,
-                                                ),
-                                          icon: const Icon(
-                                            Icons.chevron_left,
-                                            color: AppColors.accentOrange,
-                                            size: 32,
-                                          ),
-                                          tooltip: '이전 문제',
-                                          padding: const EdgeInsets.all(12),
-                                        ),
-                                      )
-                                    else
-                                      const SizedBox(width: 48),
-
-                                    // 중앙: 정답 제출
-                                    Expanded(
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: AppColors.accentOrange
-                                                  .withOpacity(0.4),
-                                              blurRadius: 16,
-                                              spreadRadius: 2,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
-                                        ),
-                                        child: ElevatedButton(
-                                          onPressed: vm.isSubmitting
-                                              ? null
-                                              : () async {
-                                                  final answer =
-                                                      _answerController.text;
-                                                  final result = await vm
-                                                      .submitAnswer(
-                                                        episodeId:
-                                                            widget.episodeId,
-                                                        stageNo: widget.stageNo,
-                                                        answer: answer,
-                                                      );
-                                                  if (!context.mounted) return;
-
-                                                  if (result == null) {
-                                                    await _showResultSnackBar(
-                                                      vm.errorMessage ??
-                                                          '정답 제출에 실패했습니다.',
-                                                      success: false,
-                                                    );
-                                                    return;
-                                                  }
-
-                                                  await _showResultSnackBar(
-                                                    result.message,
-                                                    success: result.isCorrect,
-                                                  );
-
-                                                  if (result.isCorrect) {
-                                                    final progress = await vm
-                                                        .completeStage(
-                                                          episodeId:
-                                                              widget.episodeId,
-                                                          stageNo:
-                                                              widget.stageNo,
-                                                        );
-                                                    if (!context.mounted) {
-                                                      return;
-                                                    }
-
-                                                    if (progress == null) {
-                                                      await _showResultSnackBar(
-                                                        vm.errorMessage ??
-                                                            'Progress update failed.',
-                                                        success: false,
-                                                      );
-                                                      return;
-                                                    }
-
-                                                    setState(
-                                                      () => _lastClearedStageNo =
-                                                          progress
-                                                              .highestStageNo,
-                                                    );
-
-                                                    final next =
-                                                        progress.nextStageNo;
-                                                    if (next != null) {
-                                                      _answerController.clear();
-                                                      await _goToStage(
-                                                        stageNo: next,
-                                                      );
-                                                    } else {
-                                                      // 마지막 스테이지: 화면 유지
-                                                      await _showResultSnackBar(
-                                                        '마지막 스테이지입니다.',
-                                                        success: true,
-                                                      );
-                                                    }
-                                                  }
-                                                },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                AppColors.accentOrange,
-                                            foregroundColor:
-                                                AppColors.textPrimary,
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 18,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                            ),
-                                            elevation: 0,
-                                          ),
-                                          child: vm.isSubmitting
-                                              ? const SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                        strokeWidth: 2.5,
-                                                        color: Colors.white,
-                                                      ),
-                                                )
-                                              : Text(
-                                                  'SUBMIT',
-                                                  style:
-                                                      GoogleFonts.pressStart2p(
-                                                        fontSize: 12,
-                                                        letterSpacing: 2,
-                                                      ),
-                                                ),
-                                        ),
-                                      ),
-                                    ),
-
-                                    // 오른쪽: 다음 문제 (있을 때만)
-                                    if (canGoNext)
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withOpacity(0.3),
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          border: Border.all(
-                                            color: AppColors.accentOrange
-                                                .withOpacity(0.5),
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        child: IconButton(
-                                          onPressed: vm.isSubmitting
-                                              ? null
-                                              : () => _goToStage(
-                                                  stageNo:
-                                                      stage.nextStageNo ??
-                                                      widget.stageNo,
-                                                ),
-                                          icon: const Icon(
-                                            Icons.chevron_right,
-                                            color: AppColors.accentOrange,
-                                            size: 32,
-                                          ),
-                                          tooltip: '다음 문제',
-                                          padding: const EdgeInsets.all(12),
-                                        ),
-                                      )
-                                    else
-                                      const SizedBox(width: 48),
-                                  ],
-                                ),
-                                // 힌트 버튼
-                                const SizedBox(height: 16),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: AppColors.accentOrange.withOpacity(
-                                        0.5,
-                                      ),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: ElevatedButton(
-                                    onPressed: vm.isLoadingHint
-                                        ? null
-                                        : () => _handleHintPressed(vm),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white.withOpacity(
-                                        0.1,
-                                      ),
-                                      foregroundColor: AppColors.accentOrange,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 16,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      elevation: 0,
-                                    ),
-                                    child: vm.isLoadingHint
-                                        ? const SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2.5,
-                                              color: AppColors.accentOrange,
-                                            ),
-                                          )
-                                        : Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              const Icon(
-                                                Icons.lightbulb_outline,
-                                                size: 18,
-                                                color: AppColors.accentOrange,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                'HINT',
-                                                style: GoogleFonts.pressStart2p(
-                                                  fontSize: 11,
-                                                  letterSpacing: 2,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                  ),
-                                ),
-
-                                if (stage.nextStageNo == null) ...[
-                                  const SizedBox(height: 16),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 10,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.accentOrange.withOpacity(
-                                        0.15,
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: AppColors.accentOrange
-                                            .withOpacity(0.4),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(
-                                          Icons.flag,
-                                          size: 16,
-                                          color: AppColors.accentOrange,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'LAST STAGE',
-                                          style: GoogleFonts.pressStart2p(
-                                            fontSize: 10,
-                                            color: AppColors.accentOrange,
-                                            letterSpacing: 2,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                                if (vm.errorMessage != null) ...[
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    vm.errorMessage!,
-                                    style: GoogleFonts.pressStart2p(
-                                      fontSize: 8,
-                                      color: Colors.red.shade300,
-                                      height: 1.6,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ],
-                            ],
-                          ),
-                        ),
+                        child: vm.isLoadingStage
+                            ? const _QuizLoadingView()
+                            : stage == null
+                            ? _QuizErrorView(
+                                message: vm.errorMessage,
+                                onRetry: () => _reloadStage(vm),
+                              )
+                            : _QuizStageBody(
+                                stage: stage,
+                                questionAreaKey: _questionAreaKey,
+                                imageAreaKey: _imageAreaKey,
+                                errorMessage: vm.errorMessage,
+                                answerController: _answerController,
+                                answerFocusNode: _answerFocusNode,
+                                wrongAnswerAnimation: _wrongAnswerController,
+                                showWrongAnswer: _showWrongAnswer,
+                                isSubmitting: vm.isSubmitting,
+                                onRefresh: () => _reloadStage(vm),
+                                onSubmit: () => _submitAnswer(vm),
+                              ),
                       ),
                     ],
                   ),
@@ -792,8 +371,695 @@ class _QuizScreenState extends State<QuizScreen> {
               },
             ),
           ),
-          const DrawingBoard(),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedOpacity(
+                opacity: _showWrongAnswer ? 1 : 0,
+                duration: const Duration(milliseconds: 80),
+                child: ColoredBox(
+                  color: const Color(0xFF841D22).withValues(alpha: 0.3),
+                ),
+              ),
+            ),
+          ),
+          DrawingBoard(
+            controller: _drawingController,
+            showFloatingButton: false,
+            topInset: 72,
+            drawingBounds: _drawingBounds,
+            strokeScale: _drawingStrokeScale,
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _QuizTopBar extends StatelessWidget {
+  const _QuizTopBar({
+    required this.drawingController,
+    required this.isLoadingHint,
+    required this.onHint,
+    required this.onHome,
+  });
+
+  final DrawingBoardController drawingController;
+  final bool isLoadingHint;
+  final VoidCallback onHint;
+  final VoidCallback onHome;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: Row(
+        children: [
+          _HeaderIconButton(
+            icon: Icons.home_rounded,
+            tooltip: '홈',
+            onTap: onHome,
+          ),
+          const SizedBox(width: 10),
+          const Spacer(),
+          _HeaderIconButton(
+            icon: Icons.lightbulb_outline_rounded,
+            tooltip: '힌트',
+            onTap: isLoadingHint ? null : onHint,
+            isLoading: isLoadingHint,
+          ),
+          const SizedBox(width: 8),
+          ListenableBuilder(
+            listenable: drawingController,
+            builder: (context, _) {
+              return _HeaderIconButton(
+                icon: drawingController.isActive
+                    ? Icons.close_rounded
+                    : Icons.brush_rounded,
+                tooltip: drawingController.isActive ? '그리기 종료' : '그리기',
+                onTap: drawingController.toggle,
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+          const SettingsButton(
+            color: AppColors.textOnPumpkin,
+            borderAlpha: 0.3,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+enum _HintAccessAction { ad, premium }
+
+class _HintAccessDialog extends StatelessWidget {
+  const _HintAccessDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    const gold = Color(0xFFD6A84F);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 320),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.glassCardBackground,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.glassCardBackground),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x55210F20),
+                blurRadius: 18,
+                offset: Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const SizedBox(width: 34),
+                  const Expanded(
+                    child: Text(
+                      'HINT',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: AppFonts.title,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.crust,
+                      ),
+                    ),
+                  ),
+                  Transform.translate(
+                    offset: const Offset(8, 0),
+                    child: IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded, size: 22),
+                      color: AppColors.crust,
+                      tooltip: '닫기',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 34,
+                        minHeight: 34,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                '광고를 보고 이번 스테이지의 힌트를 받거나, 프리미엄 패키지로 힌트 무제한 제공과 광고 제거를 함께 이용할 수 있어요.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: AppFonts.body,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 46,
+                child: ElevatedButton.icon(
+                  onPressed: () =>
+                      Navigator.of(context).pop(_HintAccessAction.ad),
+                  icon: const Icon(Icons.play_circle_outline_rounded, size: 20),
+                  label: const Text('광고보고 힌트받기'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.crust,
+                    foregroundColor: AppColors.textOnPumpkin,
+                    elevation: 0,
+                    textStyle: const TextStyle(
+                      fontFamily: AppFonts.body,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 46,
+                child: OutlinedButton.icon(
+                  onPressed: () =>
+                      Navigator.of(context).pop(_HintAccessAction.premium),
+                  icon: const Icon(Icons.workspace_premium_rounded, size: 20),
+                  label: const Text('프리미엄 패키지 구매하기'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: gold,
+                    side: const BorderSide(color: gold, width: 1.4),
+                    textStyle: const TextStyle(
+                      fontFamily: AppFonts.body,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuizStageBody extends StatelessWidget {
+  const _QuizStageBody({
+    required this.stage,
+    required this.questionAreaKey,
+    required this.imageAreaKey,
+    required this.errorMessage,
+    required this.answerController,
+    required this.answerFocusNode,
+    required this.wrongAnswerAnimation,
+    required this.showWrongAnswer,
+    required this.isSubmitting,
+    required this.onRefresh,
+    required this.onSubmit,
+  });
+
+  final StageInfoModel stage;
+  final Key questionAreaKey;
+  final Key imageAreaKey;
+  final String? errorMessage;
+  final TextEditingController answerController;
+  final FocusNode answerFocusNode;
+  final Animation<double> wrongAnswerAnimation;
+  final bool showWrongAnswer;
+  final bool isSubmitting;
+  final VoidCallback onRefresh;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
+        final isKeyboardOpen = keyboardHeight > 0;
+        final availableHeight = constraints.maxHeight - keyboardHeight - 12;
+        final estimatedContentHeight = constraints.maxWidth + 168;
+        final scale = isKeyboardOpen && availableHeight < estimatedContentHeight
+            ? (availableHeight / estimatedContentHeight).clamp(0.58, 1.0)
+            : 1.0;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: estimatedContentHeight * scale,
+              child: Transform.scale(
+                scale: scale,
+                alignment: Alignment.topCenter,
+                child: SizedBox(
+                  width: constraints.maxWidth,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [..._mainChildren(), ..._errorChildren()],
+                  ),
+                ),
+              ),
+            ),
+            if (!isKeyboardOpen) ...[
+              const SizedBox(height: 8),
+              const Expanded(child: _BannerAdReserve()),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  List<Widget> _mainChildren() {
+    return [
+      _QuestionTitle(stage: stage),
+      const SizedBox(height: 25),
+      _QuestionArea(
+        key: questionAreaKey,
+        imageKey: imageAreaKey,
+        stage: stage,
+        onRefresh: onRefresh,
+      ),
+      const SizedBox(height: 20),
+      _AnswerDock(
+        controller: answerController,
+        focusNode: answerFocusNode,
+        wrongAnswerAnimation: wrongAnswerAnimation,
+        showWrongAnswer: showWrongAnswer,
+        isSubmitting: isSubmitting,
+        isLastStage: stage.nextStageNo == null,
+        onSubmit: onSubmit,
+      ),
+    ];
+  }
+
+  List<Widget> _errorChildren() {
+    if (errorMessage == null) return const [];
+    return [const SizedBox(height: 8), _InlineError(message: errorMessage!)];
+  }
+}
+
+class _QuestionArea extends StatelessWidget {
+  const _QuestionArea({
+    super.key,
+    required this.imageKey,
+    required this.stage,
+    required this.onRefresh,
+  });
+
+  final Key imageKey;
+  final StageInfoModel stage;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: RetroGlassCard(
+          width: null,
+          padding: const EdgeInsets.all(14),
+          borderColor: AppColors.glassCardBackground,
+          child: QuizImage(
+            key: imageKey,
+            imageUrl: stage.imageUrl,
+            onRefresh: onRefresh,
+            showShadow: false,
+            showBorder: false,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuestionTitle extends StatelessWidget {
+  const _QuestionTitle({required this.stage});
+
+  final StageInfoModel stage;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = stage.title.trim();
+    final text = title.isEmpty
+        ? 'STAGE ${stage.stageNo}.'
+        : 'STAGE ${stage.stageNo}. $title';
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 10, right: 6),
+      child: Text(
+        text,
+        textAlign: TextAlign.left,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontFamily: AppFonts.title,
+          fontSize: 30,
+          fontWeight: FontWeight.w900,
+          color: AppColors.textOnPumpkin.withValues(alpha: 0.92),
+          height: 1.08,
+        ),
+      ),
+    );
+  }
+}
+
+class _BannerAdReserve extends StatelessWidget {
+  const _BannerAdReserve();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(height: 56);
+  }
+}
+
+class _AnswerDock extends StatelessWidget {
+  const _AnswerDock({
+    required this.controller,
+    required this.focusNode,
+    required this.wrongAnswerAnimation,
+    required this.showWrongAnswer,
+    required this.isSubmitting,
+    required this.isLastStage,
+    required this.onSubmit,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final Animation<double> wrongAnswerAnimation;
+  final bool showWrongAnswer;
+  final bool isSubmitting;
+  final bool isLastStage;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final fieldColor = showWrongAnswer
+        ? const Color(0xFFC44441)
+        : AppColors.surface.withValues(alpha: 0.92);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AnimatedBuilder(
+          animation: wrongAnswerAnimation,
+          builder: (context, child) {
+            final offset = showWrongAnswer
+                ? math.sin(wrongAnswerAnimation.value * math.pi * 2) * 5
+                : 0.0;
+
+            return Transform.translate(offset: Offset(offset, 0), child: child);
+          },
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 58,
+                  decoration: BoxDecoration(
+                    color: fieldColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.textOnPumpkin.withValues(alpha: 0.28),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    enabled: !isSubmitting,
+                    keyboardType: TextInputType.text,
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp('[a-zA-Z0-9]')),
+                      TextInputFormatter.withFunction((oldValue, newValue) {
+                        return newValue.copyWith(
+                          text: newValue.text.toUpperCase(),
+                          selection: newValue.selection,
+                        );
+                      }),
+                    ],
+                    style: const TextStyle(
+                      fontFamily: AppFonts.body,
+                      fontSize: 17,
+                      color: Colors.black,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.4,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: showWrongAnswer ? '오답입니다.' : '정답 입력',
+                      hintStyle: TextStyle(
+                        fontFamily: AppFonts.body,
+                        fontSize: 13,
+                        color: showWrongAnswer
+                            ? Colors.white
+                            : Colors.grey.shade500,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.4,
+                      ),
+                      filled: false,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 16,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: fieldColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.textOnPumpkin.withValues(alpha: 0.28),
+                    width: 1.2,
+                  ),
+                ),
+                child: IconButton(
+                  onPressed: isSubmitting ? null : onSubmit,
+                  tooltip: '제출',
+                  icon: isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.4,
+                            color: AppColors.textOnPumpkin,
+                          ),
+                        )
+                      : const Icon(Icons.keyboard_return_rounded, size: 25),
+                  color: AppColors.textOnPumpkin,
+                  disabledColor: AppColors.textOnPumpkin.withValues(
+                    alpha: 0.34,
+                  ),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (isLastStage) ...[
+          const SizedBox(height: 10),
+          const Align(
+            alignment: Alignment.centerRight,
+            child: _LastStageBadge(),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.isLoading = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onTap;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton.filledTonal(
+      onPressed: onTap,
+      tooltip: tooltip,
+      icon: isLoading
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.2,
+                color: AppColors.textOnPumpkin,
+              ),
+            )
+          : Icon(icon, size: 22),
+      color: AppColors.textOnPumpkin,
+      style: IconButton.styleFrom(
+        backgroundColor: Colors.transparent,
+        side: BorderSide(
+          color: AppColors.textOnPumpkin.withValues(alpha: 0.3),
+          width: 1.2,
+        ),
+        minimumSize: const Size(42, 42),
+        shape: const CircleBorder(),
+      ),
+    );
+  }
+}
+
+class _LastStageBadge extends StatelessWidget {
+  const _LastStageBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 42,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.pumpkin.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.pumpkin.withValues(alpha: 0.38)),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.flag_rounded, size: 16, color: AppColors.pumpkin),
+          SizedBox(width: 6),
+          Text(
+            'LAST',
+            style: TextStyle(
+              fontFamily: AppFonts.body,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              color: AppColors.pumpkin,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuizLoadingView extends StatelessWidget {
+  const _QuizLoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: CircularProgressIndicator(color: AppColors.pumpkin),
+    );
+  }
+}
+
+class _QuizErrorView extends StatelessWidget {
+  const _QuizErrorView({required this.message, required this.onRetry});
+
+  final String? message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: RetroGlassCard(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(Icons.refresh_rounded, color: AppColors.crust, size: 34),
+            const SizedBox(height: 12),
+            const Text(
+              '스테이지를 불러오지 못했습니다.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppFonts.body,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            if (message != null) ...[
+              const SizedBox(height: 8),
+              _InlineError(message: message!),
+            ],
+            const SizedBox(height: 14),
+            ElevatedButton(
+              onPressed: onRetry,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.pumpkin,
+                foregroundColor: AppColors.textOnPumpkin,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'RETRY',
+                style: TextStyle(
+                  fontFamily: AppFonts.body,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      message,
+      textAlign: TextAlign.center,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontFamily: AppFonts.body,
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: Colors.red.shade300,
+        height: 1.35,
       ),
     );
   }
