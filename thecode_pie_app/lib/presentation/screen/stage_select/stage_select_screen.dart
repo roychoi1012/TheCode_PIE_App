@@ -4,6 +4,7 @@ import 'package:thecode_pie_app/core/constants/app_colors.dart';
 import 'package:thecode_pie_app/core/constants/app_fonts.dart';
 import 'package:thecode_pie_app/presentation/component/premium_purchase_dialog.dart';
 import 'package:thecode_pie_app/presentation/component/retro_background.dart';
+import 'package:thecode_pie_app/presentation/purchase/purchase_view_model.dart';
 import 'package:thecode_pie_app/presentation/screen/quiz/quiz_screen_root.dart';
 import 'package:thecode_pie_app/presentation/screen/quiz/quiz_view_model.dart';
 import 'package:thecode_pie_app/providers/app_providers.dart';
@@ -34,7 +35,10 @@ class StageSelectScreen extends StatelessWidget {
     final unlockedThrough = rawUnlockedThrough > _totalStageCount
         ? _totalStageCount
         : rawUnlockedThrough;
-    final hasPremiumAccess = unlockedThrough > _freeStageCount;
+    final purchaseViewModel = context.watch<PurchaseViewModel>();
+    final hasPremiumAccess =
+        unlockedThrough > _freeStageCount ||
+        purchaseViewModel.unlocksPremiumStages;
 
     return Scaffold(
       body: Stack(
@@ -229,10 +233,10 @@ class _PremiumBanner extends StatelessWidget {
     final icon = hasPremiumAccess
         ? Icons.workspace_premium_rounded
         : Icons.lock_open_rounded;
-    final title = hasPremiumAccess ? '프리미엄 유저' : 'STAGE 21-50 해금';
+    final title = hasPremiumAccess ? '구매 항목 적용됨' : '프리미엄 패키지 구매하기';
     final subtitle = hasPremiumAccess
-        ? '프리미엄 패키지 구매 완료'
-        : '30개의 추가 스테이지 + 광고 제거';
+        ? '구매한 기능으로 플레이 중입니다'
+        : '힌트 광고 제거 + 배너 광고 제거 + STAGE 21-50 해금';
 
     return Material(
       color: background,

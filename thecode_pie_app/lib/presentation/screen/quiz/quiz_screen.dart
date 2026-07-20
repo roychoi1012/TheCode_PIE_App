@@ -15,6 +15,7 @@ import '../../component/premium_purchase_dialog.dart';
 import '../../component/quiz_image.dart';
 import '../../component/settings_button.dart';
 import '../auth/auth_view_model.dart';
+import '../../purchase/purchase_view_model.dart';
 import 'quiz_view_model.dart';
 import 'quiz_screen_root.dart';
 import '../../../providers/app_providers.dart';
@@ -91,9 +92,15 @@ class _QuizScreenState extends State<QuizScreen>
       context,
       listen: false,
     ).currentUser;
+    final purchaseViewModel = Provider.of<PurchaseViewModel>(
+      context,
+      listen: false,
+    );
     final adUserId =
         currentUser?.providerUserId ?? currentUser?.id?.toString() ?? '';
-    if (adUserId.isNotEmpty && widget.episodeCode.isNotEmpty) {
+    if (!purchaseViewModel.skipsHintAds &&
+        adUserId.isNotEmpty &&
+        widget.episodeCode.isNotEmpty) {
       _adManager.loadAd(
         userId: adUserId,
         episodeCode: widget.episodeCode,
@@ -185,6 +192,15 @@ class _QuizScreenState extends State<QuizScreen>
   }
 
   Future<void> _handleHintPressed(QuizViewModel vm) async {
+    final purchaseViewModel = Provider.of<PurchaseViewModel>(
+      context,
+      listen: false,
+    );
+    if (purchaseViewModel.skipsHintAds) {
+      await _loadAndShowHint(vm);
+      return;
+    }
+
     final action = await _showHintAccessDialog();
     if (!mounted || action == null) return;
 
@@ -614,6 +630,7 @@ class _QuizStageBody extends StatelessWidget {
         final isKeyboardOpen = keyboardHeight > 0;
         final availableHeight = constraints.maxHeight - keyboardHeight - 12;
         final estimatedContentHeight = constraints.maxWidth + 168;
+        final removesAds = context.watch<PurchaseViewModel>().removesAds;
         final scale = isKeyboardOpen && availableHeight < estimatedContentHeight
             ? (availableHeight / estimatedContentHeight).clamp(0.58, 1.0)
             : 1.0;
@@ -636,7 +653,7 @@ class _QuizStageBody extends StatelessWidget {
                 ),
               ),
             ),
-            if (!isKeyboardOpen) ...[
+            if (!isKeyboardOpen && !removesAds) ...[
               const SizedBox(height: 8),
               const Expanded(child: _BannerAdReserve()),
             ],

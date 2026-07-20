@@ -2,6 +2,7 @@ import 'package:provider/provider.dart';
 import 'package:thecode_pie_app/quiz/data/repository/contents_repository.dart';
 
 import '../core/api/auth_api.dart';
+import '../core/purchase/purchase_api.dart';
 import '../core/storage/auth_storage.dart';
 import '../quiz/data/data_source/contents_data_source.dart';
 import '../auth/data/repository/auth_repository.dart';
@@ -18,6 +19,7 @@ import '../quiz/usecase/get_start_stage_usecase.dart';
 import '../quiz/usecase/has_hint_access_usecase.dart';
 import '../presentation/screen/auth/auth_view_model.dart';
 import '../presentation/screen/quiz/quiz_view_model.dart';
+import '../presentation/purchase/purchase_view_model.dart';
 
 /// 의존성 주입 설정
 class DependencyInjection {
@@ -80,6 +82,11 @@ class DependencyInjection {
     ),
     ChangeNotifierProvider<QuizViewModel>(
       create: (_) => _createQuizViewModel(),
+    ),
+    ChangeNotifierProvider<PurchaseViewModel>(
+      create: (_) =>
+          PurchaseViewModel(purchaseApi: PurchaseApi(_authRepository))
+            ..initialize(),
     ),
   ];
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
@@ -6,6 +7,7 @@ import 'package:thecode_pie_app/core/constants/app_fonts.dart';
 import 'package:thecode_pie_app/presentation/component/google_login_button.dart';
 import 'package:thecode_pie_app/presentation/component/retro_background.dart';
 import 'package:thecode_pie_app/presentation/component/settings_button.dart';
+import 'package:thecode_pie_app/presentation/purchase/purchase_view_model.dart';
 
 import '../../../providers/app_providers.dart';
 import '../quiz/quiz_screen_root.dart';
@@ -39,12 +41,12 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                Positioned(top: 10, right: 10, child: const SettingsButton()),
+                const Positioned(top: 10, right: 10, child: SettingsButton()),
                 Positioned(
                   right: 20,
                   bottom: 14,
                   child: Text(
-                    '© 2026 Clavis',
+                    '2026 Clavis',
                     style: TextStyle(
                       fontFamily: AppFonts.body,
                       fontSize: 11,
@@ -54,6 +56,39 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (kDebugMode)
+                  Positioned(
+                    left: 20,
+                    bottom: 10,
+                    child: Consumer<PurchaseViewModel>(
+                      builder: (context, purchaseViewModel, _) {
+                        if (!purchaseViewModel.hasAnyEntitlement) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return TextButton(
+                          onPressed: purchaseViewModel.resetDebugPurchases,
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(0, 34),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            foregroundColor: AppColors.textOnPumpkin,
+                            textStyle: const TextStyle(
+                              fontFamily: AppFonts.body,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('구매 초기화'),
+                        );
+                      },
+                    ),
+                  ),
                 Center(
                   child: Transform.translate(
                     offset: const Offset(0, -24),
@@ -171,7 +206,9 @@ class LoginScreen extends StatelessWidget {
     BuildContext context,
     AuthViewModel viewModel,
   ) async {
-    await viewModel.signInWithGoogle();
+    final signedIn = await viewModel.signInWithGoogle();
+    if (!context.mounted || !signedIn) return;
+    await context.read<PurchaseViewModel>().syncEntitlements();
   }
 
   Future<void> _handleStartButton(
