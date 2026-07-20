@@ -1,56 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
 import 'package:thecode_pie_app/core/constants/app_fonts.dart';
+import 'package:thecode_pie_app/core/purchase/purchase_product.dart';
+import 'package:thecode_pie_app/presentation/purchase/purchase_view_model.dart';
 
-enum PurchaseProduct {
-  premium,
-  stageUnlock,
-  adRemoval;
-
-  String get title {
-    switch (this) {
-      case PurchaseProduct.premium:
-        return '프리미엄 패키지';
-      case PurchaseProduct.stageUnlock:
-        return 'STAGE 해금';
-      case PurchaseProduct.adRemoval:
-        return '광고 제거만 구매';
-    }
-  }
-
-  String get buttonText {
-    switch (this) {
-      case PurchaseProduct.premium:
-        return '₩ 3,990원';
-      case PurchaseProduct.stageUnlock:
-        return '₩ 2,990원';
-      case PurchaseProduct.adRemoval:
-        return '₩ 1,490원';
-    }
-  }
-
-  IconData get icon {
-    switch (this) {
-      case PurchaseProduct.premium:
-        return Icons.workspace_premium_rounded;
-      case PurchaseProduct.stageUnlock:
-        return Icons.lock_open_rounded;
-      case PurchaseProduct.adRemoval:
-        return Icons.block_rounded;
-    }
-  }
-
-  List<String> get benefits {
-    switch (this) {
-      case PurchaseProduct.premium:
-        return const ['힌트 무제한 제공', '광고 제거', 'STAGE 21-50 추가 해금'];
-      case PurchaseProduct.stageUnlock:
-        return const ['STAGE 21-50 추가 해금'];
-      case PurchaseProduct.adRemoval:
-        return const ['광고 제거'];
-    }
-  }
-}
+export 'package:thecode_pie_app/core/purchase/purchase_product.dart';
 
 class PremiumPurchaseDialog extends StatelessWidget {
   const PremiumPurchaseDialog({
@@ -83,80 +39,161 @@ class PremiumPurchaseDialog extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
+          child: Consumer<PurchaseViewModel>(
+            builder: (context, purchaseViewModel, _) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(width: 34),
-                  const Expanded(
-                    child: Text(
-                      '구매하기',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: AppFonts.title,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.crust,
+                  Row(
+                    children: [
+                      const SizedBox(width: 34),
+                      const Expanded(
+                        child: Text(
+                          '구매하기',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: AppFonts.title,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.crust,
+                          ),
+                        ),
+                      ),
+                      Transform.translate(
+                        offset: const Offset(8, 0),
+                        child: IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close_rounded, size: 22),
+                          color: AppColors.crust,
+                          tooltip: '닫기',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 34,
+                            minHeight: 34,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (!isPremium) ...[
+                    _PurchaseCard(
+                      product: PurchaseProduct.premium,
+                      buttonText: purchaseViewModel.priceLabel(
+                        PurchaseProduct.premium,
+                      ),
+                      emphasized: true,
+                      isOwned: purchaseViewModel.isOwned(
+                        PurchaseProduct.premium,
+                      ),
+                      isBusy: purchaseViewModel.isPurchasing,
+                      onPressed: () => _handlePurchasePressed(
+                        context,
+                        purchaseViewModel,
+                        PurchaseProduct.premium,
                       ),
                     ),
+                    const SizedBox(height: 12),
+                  ],
+                  _PurchaseCard(
+                    product: product,
+                    buttonText: purchaseViewModel.priceLabel(product),
+                    emphasized: isPremium,
+                    isOwned: purchaseViewModel.isOwned(product),
+                    isBusy: purchaseViewModel.isPurchasing,
+                    onPressed: () => _handlePurchasePressed(
+                      context,
+                      purchaseViewModel,
+                      product,
+                    ),
                   ),
-                  Transform.translate(
-                    offset: const Offset(8, 0),
-                    child: IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close_rounded, size: 22),
-                      color: AppColors.crust,
-                      tooltip: '닫기',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 34,
-                        minHeight: 34,
+                  if (purchaseViewModel.errorMessage != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      purchaseViewModel.errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: AppFonts.body,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.plum,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: purchaseViewModel.isPurchasing
+                        ? null
+                        : purchaseViewModel.restorePurchases,
+                    child: const Text(
+                      '구매 복원',
+                      style: TextStyle(
+                        fontFamily: AppFonts.body,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textTertiary,
                       ),
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 16),
-              if (!isPremium) ...[
-                _PurchaseCard(
-                  title: PurchaseProduct.premium.title,
-                  buttonText: PurchaseProduct.premium.buttonText,
-                  icon: PurchaseProduct.premium.icon,
-                  benefits: PurchaseProduct.premium.benefits,
-                  emphasized: true,
-                ),
-                const SizedBox(height: 12),
-              ],
-              _PurchaseCard(
-                title: product.title,
-                buttonText: product.buttonText,
-                icon: product.icon,
-                benefits: product.benefits,
-                emphasized: isPremium,
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
     );
   }
+
+  Future<void> _handlePurchasePressed(
+    BuildContext context,
+    PurchaseViewModel purchaseViewModel,
+    PurchaseProduct product,
+  ) async {
+    if (!kDebugMode) {
+      await purchaseViewModel.buy(product);
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('테스트 구매'),
+        content: Text('${product.title}\n테스트용으로 구매 확정하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('아니오'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('예'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      purchaseViewModel.applyDebugPurchase(product);
+    }
+  }
 }
 
 class _PurchaseCard extends StatelessWidget {
   const _PurchaseCard({
-    required this.title,
+    required this.product,
     required this.buttonText,
-    required this.icon,
-    required this.benefits,
+    required this.isOwned,
+    required this.isBusy,
+    required this.onPressed,
     this.emphasized = false,
   });
 
-  final String title;
+  final PurchaseProduct product;
   final String buttonText;
-  final IconData icon;
-  final List<String> benefits;
+  final bool isOwned;
+  final bool isBusy;
+  final VoidCallback onPressed;
   final bool emphasized;
 
   @override
@@ -182,14 +219,14 @@ class _PurchaseCard extends StatelessWidget {
           Row(
             children: [
               Icon(
-                icon,
+                product.icon,
                 color: emphasized ? gold : AppColors.textTertiary,
                 size: 22,
               ),
               const SizedBox(width: 9),
               Expanded(
                 child: Text(
-                  title,
+                  product.title,
                   style: TextStyle(
                     fontFamily: AppFonts.body,
                     fontSize: emphasized ? 15 : 14,
@@ -221,18 +258,24 @@ class _PurchaseCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 9),
-          for (final benefit in benefits) ...[
+          for (final benefit in product.benefits) ...[
             _PremiumBenefit(text: benefit),
-            if (benefit != benefits.last) const SizedBox(height: 5),
+            if (benefit != product.benefits.last) const SizedBox(height: 5),
           ],
           const SizedBox(height: 10),
           SizedBox(
             height: emphasized ? 46 : 40,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: isOwned || isBusy ? null : onPressed,
               style: ElevatedButton.styleFrom(
                 backgroundColor: emphasized ? gold : AppColors.crust,
+                disabledBackgroundColor: AppColors.textTertiary.withValues(
+                  alpha: 0.28,
+                ),
                 foregroundColor: AppColors.textOnPumpkin,
+                disabledForegroundColor: AppColors.textOnPumpkin.withValues(
+                  alpha: 0.72,
+                ),
                 elevation: 0,
                 textStyle: const TextStyle(
                   fontFamily: AppFonts.body,
@@ -243,7 +286,7 @@ class _PurchaseCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: Text(buttonText),
+              child: Text(isOwned ? '구매 완료' : buttonText),
             ),
           ),
         ],

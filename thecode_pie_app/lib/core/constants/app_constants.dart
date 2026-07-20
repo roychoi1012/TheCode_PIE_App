@@ -43,6 +43,12 @@ class AppConstants {
   static String hintAccessEndpoint(int episodeId, int stageNo) =>
       '$baseUrl$apiVersion/commerce/hint-access/$episodeId/$stageNo/';
 
+  static String get entitlementStatusEndpoint =>
+      '$baseUrl$apiVersion/commerce/entitlements/';
+
+  static String get googlePlayPurchaseVerifyEndpoint =>
+      '$baseUrl$apiVersion/commerce/purchases/google/verify/';
+
   /// s3://bucket/key 형태를 HTTPS public URL로 변환
   /// - 이미 http/https 이면 그대로 반환
   /// - 변환 실패 시 원문 반환
