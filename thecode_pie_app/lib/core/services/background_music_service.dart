@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,8 +13,19 @@ class BackgroundMusicService {
   BackgroundMusicService._internal();
 
   static const String _enabledKey = 'sound_bgm_enabled';
+  static const double _defaultVolume = 0.45;
+  static const double _minimumAudibleVolume = 0.18;
+  static final AudioContext _musicContext = AudioContext(
+    android: const AudioContextAndroid(
+      contentType: AndroidContentType.music,
+      usageType: AndroidUsageType.media,
+      audioFocus: AndroidAudioFocus.none,
+    ),
+  );
 
   AudioPlayer? _audioPlayer;
+  StreamSubscription<void>? _completionSubscription;
+  Timer? _replayTimer;
   bool _isPlaying = false;
   bool _isInitialized = false;
   double _currentVolume = 0.5;
@@ -31,10 +44,15 @@ class BackgroundMusicService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final volumeKey = userId != null ? 'bgm_volume_$userId' : 'bgm_volume';
-      return prefs.getDouble(volumeKey) ?? 0.5;
+      final savedVolume = prefs.getDouble(volumeKey);
+      if (savedVolume == null || savedVolume < _minimumAudibleVolume) {
+        await prefs.setDouble(volumeKey, _defaultVolume);
+        return _defaultVolume;
+      }
+      return savedVolume.clamp(_minimumAudibleVolume, 1.0);
     } catch (e) {
       debugPrint('Failed to load BGM volume: $e');
-      return 0.5;
+      return _defaultVolume;
     }
   }
 
@@ -51,12 +69,23 @@ class BackgroundMusicService {
 
       if (!_isInitialized) {
         _currentVolume = await _loadVolume(userId);
-        await player.setReleaseMode(ReleaseMode.loop);
+        await player.setReleaseMode(ReleaseMode.stop);
+        await player.setAudioContext(_musicContext);
         await player.setVolume(_currentVolume);
+        _completionSubscription?.cancel();
+        _completionSubscription = player.onPlayerComplete.listen((_) {
+          _handleTrackCompleted(userId);
+        });
         _isInitialized = true;
       }
 
-      await player.play(AssetSource('audio/blue.mp3'));
+      _replayTimer?.cancel();
+      await player.play(
+        AssetSource('audio/bgm/main_theme.mp3'),
+        volume: _currentVolume,
+        ctx: _musicContext,
+        mode: PlayerMode.mediaPlayer,
+      );
       _isPlaying = true;
       debugPrint('Background music started.');
     } catch (e) {
@@ -68,6 +97,7 @@ class BackgroundMusicService {
     if (!_isPlaying || _audioPlayer == null) return;
 
     try {
+      _replayTimer?.cancel();
       await _audioPlayer!.pause();
       _isPlaying = false;
       debugPrint('Background music paused.');
@@ -80,6 +110,7 @@ class BackgroundMusicService {
     if (_audioPlayer == null) return;
 
     try {
+      _replayTimer?.cancel();
       await _audioPlayer!.stop();
       _isPlaying = false;
       debugPrint('Background music stopped.');
@@ -134,9 +165,22 @@ class BackgroundMusicService {
 
   bool get isPlaying => _isPlaying;
 
+  void _handleTrackCompleted(String? userId) {
+    if (_isDisposed) return;
+    _isPlaying = false;
+    _replayTimer?.cancel();
+    _replayTimer = Timer(const Duration(seconds: 3), () async {
+      if (_isDisposed) return;
+      await play(userId: userId);
+    });
+  }
+
   Future<void> dispose() async {
     if (_isDisposed || _audioPlayer == null) return;
 
+    _replayTimer?.cancel();
+    await _completionSubscription?.cancel();
+    _completionSubscription = null;
     await stop();
     await _audioPlayer!.dispose();
     _audioPlayer = null;

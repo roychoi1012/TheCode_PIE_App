@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
 import 'package:thecode_pie_app/core/constants/app_fonts.dart';
+import 'package:thecode_pie_app/core/services/sound_effects_service.dart';
 import 'package:thecode_pie_app/presentation/component/premium_purchase_dialog.dart';
 import 'package:thecode_pie_app/presentation/component/retro_background.dart';
 import 'package:thecode_pie_app/presentation/purchase/purchase_view_model.dart';
@@ -53,7 +54,9 @@ class StageSelectScreen extends StatelessWidget {
                   Row(
                     children: [
                       IconButton(
-                        onPressed: () => Navigator.of(context).maybePop(),
+                        onPressed: SoundEffectsService().withSelect(
+                          () => Navigator.of(context).maybePop(),
+                        ),
                         icon: const Icon(Icons.arrow_back_rounded),
                         color: AppColors.textOnPumpkin,
                         tooltip: 'Back',
@@ -242,7 +245,7 @@ class _PremiumBanner extends StatelessWidget {
       color: background,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
-        onTap: onTap,
+        onTap: SoundEffectsService().withSelect(onTap),
         borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -409,7 +412,7 @@ class _StageTile extends StatelessWidget {
       elevation: isUnlocked ? 2 : 0,
       shadowColor: const Color(0x332F2330),
       child: InkWell(
-        onTap: onTap,
+        onTap: SoundEffectsService().withSelect(onTap),
         borderRadius: BorderRadius.circular(8),
         child: Container(
           decoration: BoxDecoration(

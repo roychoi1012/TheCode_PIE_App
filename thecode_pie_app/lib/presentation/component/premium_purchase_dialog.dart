@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
 import 'package:thecode_pie_app/core/constants/app_fonts.dart';
 import 'package:thecode_pie_app/core/purchase/purchase_product.dart';
+import 'package:thecode_pie_app/core/services/sound_effects_service.dart';
 import 'package:thecode_pie_app/presentation/purchase/purchase_view_model.dart';
 
 export 'package:thecode_pie_app/core/purchase/purchase_product.dart';
@@ -63,7 +64,9 @@ class PremiumPurchaseDialog extends StatelessWidget {
                       Transform.translate(
                         offset: const Offset(8, 0),
                         child: IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
+                          onPressed: SoundEffectsService().withSelect(
+                            () => Navigator.of(context).pop(),
+                          ),
                           icon: const Icon(Icons.close_rounded, size: 22),
                           color: AppColors.crust,
                           tooltip: '닫기',
@@ -125,7 +128,9 @@ class PremiumPurchaseDialog extends StatelessWidget {
                   TextButton(
                     onPressed: purchaseViewModel.isPurchasing
                         ? null
-                        : purchaseViewModel.restorePurchases,
+                        : SoundEffectsService().withSelect(
+                            purchaseViewModel.restorePurchases,
+                          ),
                     child: const Text(
                       '구매 복원',
                       style: TextStyle(
@@ -162,11 +167,15 @@ class PremiumPurchaseDialog extends StatelessWidget {
         content: Text('${product.title}\n테스트용으로 구매 확정하시겠습니까?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: SoundEffectsService().withSelect(
+              () => Navigator.of(context).pop(false),
+            ),
             child: const Text('아니오'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: SoundEffectsService().withSelect(
+              () => Navigator.of(context).pop(true),
+            ),
             child: const Text('예'),
           ),
         ],
@@ -266,7 +275,9 @@ class _PurchaseCard extends StatelessWidget {
           SizedBox(
             height: emphasized ? 46 : 40,
             child: ElevatedButton(
-              onPressed: isOwned || isBusy ? null : onPressed,
+              onPressed: isOwned || isBusy
+                  ? null
+                  : SoundEffectsService().withSelect(onPressed),
               style: ElevatedButton.styleFrom(
                 backgroundColor: emphasized ? gold : AppColors.crust,
                 disabledBackgroundColor: AppColors.textTertiary.withValues(

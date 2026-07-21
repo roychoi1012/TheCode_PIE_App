@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
 import 'package:thecode_pie_app/core/constants/app_fonts.dart';
 import 'package:thecode_pie_app/core/services/background_music_service.dart';
+import 'package:thecode_pie_app/core/services/sound_effects_service.dart';
 import 'package:thecode_pie_app/presentation/component/google_login_button.dart';
 import 'package:thecode_pie_app/presentation/component/premium_purchase_dialog.dart';
 import 'package:thecode_pie_app/presentation/screen/auth/auth_view_model.dart';
@@ -128,7 +129,11 @@ class _SettingsDialogState extends State<SettingsDialog>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _DialogHeader(onClose: () => Navigator.of(context).pop()),
+                    _DialogHeader(
+                      onClose: SoundEffectsService().withSelect(
+                        () => Navigator.of(context).pop(),
+                      )!,
+                    ),
                     const SizedBox(height: 15),
                     const _SectionLabel(label: 'SOUND'),
                     const SizedBox(height: 8),
@@ -139,8 +144,10 @@ class _SettingsDialogState extends State<SettingsDialog>
                             icon: Icons.vibration_rounded,
                             label: '진동',
                             value: _vibrationEnabled,
-                            onTap: () =>
-                                _setVibrationEnabled(!_vibrationEnabled),
+                            onTap: () {
+                              SoundEffectsService().playSelect();
+                              _setVibrationEnabled(!_vibrationEnabled);
+                            },
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -149,7 +156,10 @@ class _SettingsDialogState extends State<SettingsDialog>
                             icon: Icons.music_note_rounded,
                             label: 'BGM',
                             value: _bgmEnabled,
-                            onTap: () => _setBgmEnabled(!_bgmEnabled),
+                            onTap: () {
+                              SoundEffectsService().playSelect();
+                              _setBgmEnabled(!_bgmEnabled);
+                            },
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -158,8 +168,13 @@ class _SettingsDialogState extends State<SettingsDialog>
                             icon: Icons.volume_up_rounded,
                             label: '효과음',
                             value: _effectSoundEnabled,
-                            onTap: () =>
-                                _setEffectSoundEnabled(!_effectSoundEnabled),
+                            onTap: () {
+                              final nextEnabled = !_effectSoundEnabled;
+                              _setEffectSoundEnabled(nextEnabled);
+                              if (nextEnabled) {
+                                SoundEffectsService().playSelect();
+                              }
+                            },
                           ),
                         ),
                       ],
@@ -210,8 +225,10 @@ class _SettingsDialogState extends State<SettingsDialog>
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: () =>
-                            _openPurchase(context, PurchaseProduct.adRemoval),
+                        onPressed: SoundEffectsService().withSelect(
+                          () =>
+                              _openPurchase(context, PurchaseProduct.adRemoval),
+                        ),
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.textTertiary.withValues(
                             alpha: 0.68,

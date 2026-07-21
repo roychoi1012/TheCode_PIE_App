@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/services/sound_effects_service.dart';
 import 'package:thecode_pie_app/presentation/component/settings_dialog.dart';
 import 'package:thecode_pie_app/presentation/screen/auth/auth_view_model.dart';
 
@@ -17,7 +18,9 @@ class SettingsButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton.filledTonal(
-      onPressed: () => _showSettingsDialog(context),
+      onPressed: SoundEffectsService().withSelect(
+        () => _showSettingsDialog(context),
+      ),
       icon: const Icon(Icons.settings_rounded, size: 21),
       color: color,
       tooltip: 'Settings',

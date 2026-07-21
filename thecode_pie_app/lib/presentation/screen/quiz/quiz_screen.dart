@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
 import 'package:thecode_pie_app/core/constants/app_fonts.dart';
 import 'package:thecode_pie_app/core/services/ad_manager_service.dart';
+import 'package:thecode_pie_app/core/services/sound_effects_service.dart';
 import 'package:thecode_pie_app/quiz/domain/model/stage_info_model.dart';
 import 'package:thecode_pie_app/quiz/data/data_source/progress_storage.dart';
 
@@ -16,6 +17,7 @@ import '../../component/quiz_image.dart';
 import '../../component/settings_button.dart';
 import '../auth/auth_view_model.dart';
 import '../../purchase/purchase_view_model.dart';
+import '../stage_select/stage_select_screen.dart';
 import 'quiz_view_model.dart';
 import 'quiz_screen_root.dart';
 import '../../../providers/app_providers.dart';
@@ -69,6 +71,19 @@ class _QuizScreenState extends State<QuizScreen>
             episodeCode: widget.episodeCode,
             stageNo: stageNo,
           ),
+        ),
+      ),
+    );
+  }
+
+  void _goToStageSelect() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => StageSelectScreen(
+          episodeId: widget.episodeId,
+          episodeCode: widget.episodeCode,
+          currentStageNo: widget.stageNo,
+          highestStageNo: widget.stageNo,
         ),
       ),
     );
@@ -154,7 +169,9 @@ class _QuizScreenState extends State<QuizScreen>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: SoundEffectsService().withSelect(
+              () => Navigator.of(context).pop(),
+            ),
             child: Text(
               'OK',
               style: TextStyle(
@@ -246,10 +263,12 @@ class _QuizScreenState extends State<QuizScreen>
     _answerController.clear();
 
     if (!result.isCorrect) {
+      await SoundEffectsService().playWrong();
       await _triggerWrongAnswerFeedback();
       return;
     }
 
+    await SoundEffectsService().playCorrect();
     final progress = await vm.completeStage(
       episodeId: widget.episodeId,
       stageNo: widget.stageNo,
@@ -312,101 +331,108 @@ class _QuizScreenState extends State<QuizScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: Stack(
-        key: _stackKey,
-        children: [
-          const RetroBackground(),
-          SafeArea(
-            child: Consumer<QuizViewModel>(
-              builder: (context, vm, _) {
-                // Consumer ?대??먯꽌 ??踰덈쭔 loadStage ?몄텧
-                if (!_hasLoadedStage &&
-                    vm.stage == null &&
-                    !vm.isLoadingStage) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted && !_hasLoadedStage) {
-                      vm.loadStage(
-                        episodeId: widget.episodeId,
-                        stageNo: widget.stageNo,
-                      );
-                      _hasLoadedStage = true;
-                    }
-                  });
-                }
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _goToStageSelect();
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        body: Stack(
+          key: _stackKey,
+          children: [
+            const RetroBackground(),
+            SafeArea(
+              child: Consumer<QuizViewModel>(
+                builder: (context, vm, _) {
+                  // Consumer ?대??먯꽌 ??踰덈쭔 loadStage ?몄텧
+                  if (!_hasLoadedStage &&
+                      vm.stage == null &&
+                      !vm.isLoadingStage) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted && !_hasLoadedStage) {
+                        vm.loadStage(
+                          episodeId: widget.episodeId,
+                          stageNo: widget.stageNo,
+                        );
+                        _hasLoadedStage = true;
+                      }
+                    });
+                  }
 
-                final stage = vm.stage;
-                if (stage != null && !vm.isLoadingStage) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted) _syncDrawingBounds();
-                  });
-                }
+                  final stage = vm.stage;
+                  if (stage != null && !vm.isLoadingStage) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) _syncDrawingBounds();
+                    });
+                  }
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _QuizTopBar(
-                        drawingController: _drawingController,
-                        isLoadingHint: vm.isLoadingHint,
-                        onHint: () => _handleHintPressed(vm),
-                        onHome: () => Navigator.of(
-                          context,
-                        ).popUntil((route) => route.isFirst),
-                      ),
-                      const SizedBox(height: 55),
-                      Expanded(
-                        child: vm.isLoadingStage
-                            ? const _QuizLoadingView()
-                            : stage == null
-                            ? _QuizErrorView(
-                                message: vm.errorMessage,
-                                onRetry: () => _reloadStage(vm),
-                              )
-                            : _QuizStageBody(
-                                stage: stage,
-                                questionAreaKey: _questionAreaKey,
-                                imageAreaKey: _imageAreaKey,
-                                errorMessage: vm.errorMessage,
-                                answerController: _answerController,
-                                answerFocusNode: _answerFocusNode,
-                                wrongAnswerAnimation: _wrongAnswerController,
-                                showWrongAnswer: _showWrongAnswer,
-                                isSubmitting: vm.isSubmitting,
-                                onRefresh: () => _reloadStage(vm),
-                                onSubmit: () => _submitAnswer(vm),
-                              ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _QuizTopBar(
+                          drawingController: _drawingController,
+                          isLoadingHint: vm.isLoadingHint,
+                          onHint: () => _handleHintPressed(vm),
+                          onHome: () => Navigator.of(
+                            context,
+                          ).popUntil((route) => route.isFirst),
+                        ),
+                        const SizedBox(height: 55),
+                        Expanded(
+                          child: vm.isLoadingStage
+                              ? const _QuizLoadingView()
+                              : stage == null
+                              ? _QuizErrorView(
+                                  message: vm.errorMessage,
+                                  onRetry: () => _reloadStage(vm),
+                                )
+                              : _QuizStageBody(
+                                  stage: stage,
+                                  questionAreaKey: _questionAreaKey,
+                                  imageAreaKey: _imageAreaKey,
+                                  errorMessage: vm.errorMessage,
+                                  answerController: _answerController,
+                                  answerFocusNode: _answerFocusNode,
+                                  wrongAnswerAnimation: _wrongAnswerController,
+                                  showWrongAnswer: _showWrongAnswer,
+                                  isSubmitting: vm.isSubmitting,
+                                  onRefresh: () => _reloadStage(vm),
+                                  onSubmit: () => _submitAnswer(vm),
+                                ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-          Positioned.fill(
-            child: IgnorePointer(
-              child: AnimatedOpacity(
-                opacity: _showWrongAnswer ? 1 : 0,
-                duration: const Duration(milliseconds: 80),
-                child: ColoredBox(
-                  color: const Color(0xFF841D22).withValues(alpha: 0.3),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedOpacity(
+                  opacity: _showWrongAnswer ? 1 : 0,
+                  duration: const Duration(milliseconds: 80),
+                  child: ColoredBox(
+                    color: const Color(0xFF841D22).withValues(alpha: 0.3),
+                  ),
                 ),
               ),
             ),
-          ),
-          DrawingBoard(
-            controller: _drawingController,
-            showFloatingButton: false,
-            topInset: 72,
-            drawingBounds: _drawingBounds,
-            strokeScale: _drawingStrokeScale,
-          ),
-        ],
+            DrawingBoard(
+              controller: _drawingController,
+              showFloatingButton: false,
+              topInset: 72,
+              drawingBounds: _drawingBounds,
+              strokeScale: _drawingStrokeScale,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -517,7 +543,9 @@ class _HintAccessDialog extends StatelessWidget {
                   Transform.translate(
                     offset: const Offset(8, 0),
                     child: IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: SoundEffectsService().withSelect(
+                        () => Navigator.of(context).pop(),
+                      ),
                       icon: const Icon(Icons.close_rounded, size: 22),
                       color: AppColors.crust,
                       tooltip: '닫기',
@@ -546,8 +574,9 @@ class _HintAccessDialog extends StatelessWidget {
               SizedBox(
                 height: 46,
                 child: ElevatedButton.icon(
-                  onPressed: () =>
-                      Navigator.of(context).pop(_HintAccessAction.ad),
+                  onPressed: SoundEffectsService().withSelect(
+                    () => Navigator.of(context).pop(_HintAccessAction.ad),
+                  ),
                   icon: const Icon(Icons.play_circle_outline_rounded, size: 20),
                   label: const Text('광고보고 힌트받기'),
                   style: ElevatedButton.styleFrom(
@@ -569,8 +598,9 @@ class _HintAccessDialog extends StatelessWidget {
               SizedBox(
                 height: 46,
                 child: OutlinedButton.icon(
-                  onPressed: () =>
-                      Navigator.of(context).pop(_HintAccessAction.premium),
+                  onPressed: SoundEffectsService().withSelect(
+                    () => Navigator.of(context).pop(_HintAccessAction.premium),
+                  ),
                   icon: const Icon(Icons.workspace_premium_rounded, size: 20),
                   label: const Text('프리미엄 패키지 구매하기'),
                   style: OutlinedButton.styleFrom(
@@ -947,7 +977,7 @@ class _HeaderIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton.filledTonal(
-      onPressed: onTap,
+      onPressed: SoundEffectsService().withSelect(onTap),
       tooltip: tooltip,
       icon: isLoading
           ? const SizedBox(
@@ -1051,7 +1081,7 @@ class _QuizErrorView extends StatelessWidget {
             ],
             const SizedBox(height: 14),
             ElevatedButton(
-              onPressed: onRetry,
+              onPressed: SoundEffectsService().withSelect(onRetry),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.pumpkin,
                 foregroundColor: AppColors.textOnPumpkin,

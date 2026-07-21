@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
 import 'package:thecode_pie_app/core/constants/app_fonts.dart';
+import 'package:thecode_pie_app/core/services/sound_effects_service.dart';
 
 class GoogleLoginButton extends StatelessWidget {
   const GoogleLoginButton({
@@ -20,7 +21,7 @@ class GoogleLoginButton extends StatelessWidget {
       shadowColor: const Color(0x332F2330),
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
-        onTap: isLoading ? null : onPressed,
+        onTap: isLoading ? null : SoundEffectsService().withSelect(onPressed),
         borderRadius: BorderRadius.circular(8),
         child: Container(
           width: 232,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/services/sound_effects_service.dart';
 
 class DrawingPath {
   const DrawingPath({
@@ -351,7 +352,7 @@ class _ToolIcon extends StatelessWidget {
       width: 30,
       height: 30,
       child: IconButton(
-        onPressed: onTap,
+        onPressed: SoundEffectsService().withSelect(onTap),
         tooltip: tooltip,
         padding: EdgeInsets.zero,
         icon: Icon(icon, size: 18),

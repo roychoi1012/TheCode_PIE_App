@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/services/sound_effects_service.dart';
 
 class QuizImage extends StatelessWidget {
   const QuizImage({
@@ -72,7 +73,9 @@ class QuizImage extends StatelessWidget {
                       errorBuilder: (context, error, stackTrace) {
                         return Center(
                           child: IconButton(
-                            onPressed: onRefresh,
+                            onPressed: SoundEffectsService().withSelect(
+                              onRefresh,
+                            ),
                             icon: const Icon(
                               Icons.refresh,
                               color: AppColors.crust,

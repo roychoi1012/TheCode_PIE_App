@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
 import 'package:thecode_pie_app/core/constants/app_fonts.dart';
+import 'package:thecode_pie_app/core/services/sound_effects_service.dart';
 
 class NeonButton extends StatelessWidget {
   const NeonButton({
@@ -17,7 +18,7 @@ class NeonButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ElevatedButton.icon(
-      onPressed: onPressed,
+      onPressed: SoundEffectsService().withSelect(onPressed),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.pumpkin,
         foregroundColor: AppColors.textOnPumpkin,

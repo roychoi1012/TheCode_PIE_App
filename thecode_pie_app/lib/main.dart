@@ -12,25 +12,30 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await MobileAds.instance.initialize();
 
-  // .env 파일 로드 (파일이 없어도 기본값 사용)
   try {
     await dotenv.load(fileName: '.env');
   } catch (e) {
-    debugPrint('Warning: .env 파일을 로드할 수 없습니다. 기본값을 사용합니다.');
-  }
-
-  // 백그라운드 음악 재생 시작
-  try {
-    await BackgroundMusicService().play();
-  } catch (e) {
-    debugPrint('백그라운드 음악 초기화 실패: $e');
+    debugPrint('Warning: .env could not be loaded. Defaults will be used.');
   }
 
   runApp(const TheCodePieApp());
 }
 
-class TheCodePieApp extends StatelessWidget {
+class TheCodePieApp extends StatefulWidget {
   const TheCodePieApp({super.key});
+
+  @override
+  State<TheCodePieApp> createState() => _TheCodePieAppState();
+}
+
+class _TheCodePieAppState extends State<TheCodePieApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      BackgroundMusicService().play();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

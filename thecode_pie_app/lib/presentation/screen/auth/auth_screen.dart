@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
 import 'package:thecode_pie_app/core/constants/app_constants.dart';
 import 'package:thecode_pie_app/core/constants/app_fonts.dart';
+import 'package:thecode_pie_app/core/services/sound_effects_service.dart';
 import 'package:thecode_pie_app/presentation/component/google_login_button.dart';
 import 'package:thecode_pie_app/presentation/component/retro_background.dart';
 import 'package:thecode_pie_app/presentation/component/settings_button.dart';
@@ -46,7 +47,7 @@ class LoginScreen extends StatelessWidget {
                   right: 20,
                   bottom: 14,
                   child: Text(
-                    '2026 Clavis',
+                    '© 2026 Clavis',
                     style: TextStyle(
                       fontFamily: AppFonts.body,
                       fontSize: 11,
@@ -67,7 +68,9 @@ class LoginScreen extends StatelessWidget {
                         }
 
                         return TextButton(
-                          onPressed: purchaseViewModel.resetDebugPurchases,
+                          onPressed: SoundEffectsService().withSelect(
+                            purchaseViewModel.resetDebugPurchases,
+                          ),
                           style: TextButton.styleFrom(
                             minimumSize: const Size(0, 34),
                             padding: const EdgeInsets.symmetric(
@@ -306,7 +309,7 @@ class _HomeButton extends StatelessWidget {
         width: 232,
         height: 54,
         child: ElevatedButton(
-          onPressed: onPressed,
+          onPressed: SoundEffectsService().withSelect(onPressed),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white.withValues(alpha: 0.84),
             foregroundColor: AppColors.textOnLight,
@@ -326,7 +329,7 @@ class _HomeButton extends StatelessWidget {
       width: 232,
       height: 52,
       child: OutlinedButton(
-        onPressed: onPressed,
+        onPressed: SoundEffectsService().withSelect(onPressed),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.textOnPumpkin,
           textStyle: textStyle,
