@@ -3,7 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 /// 앱 전역 상수
 class AppConstants {
   // 앱 정보
-  static const String appName = 'The Code PIE';
+  static const String appName = 'The Code ARC';
   static const String appVersion = '1.0.0';
 
   // Google OAuth 설정 (환경변수에서 읽기)

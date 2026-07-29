@@ -104,7 +104,7 @@ class LoginScreen extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Text(
-                            'PIE',
+                            'ARC',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontFamily: AppFonts.title,

@@ -1,4 +1,4 @@
-package com.clavis.thecodepie
+package com.clavis.thecodearc
 
 import android.content.Context
 import android.os.Build
@@ -11,7 +11,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val vibrationChannel = "com.clavis.thecodepie/vibration"
+    private val vibrationChannel = "com.clavis.thecodearc/vibration"
     private val logTag = "TheCodeVibration"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {

@@ -52,6 +52,7 @@ class _QuizScreenState extends State<QuizScreen>
   double _drawingStrokeScale = 1.0;
   bool _hasLoadedStage = false;
   bool _showWrongAnswer = false;
+  bool _isReturningToStageSelect = false;
   late final AnimationController _wrongAnswerController;
 
   final AdManagerService _adManager = AdManagerService();
@@ -76,14 +77,37 @@ class _QuizScreenState extends State<QuizScreen>
     );
   }
 
-  void _goToStageSelect() {
+  Future<void> _goToStageSelect() async {
+    if (_isReturningToStageSelect) return;
+    _isReturningToStageSelect = true;
+
+    var currentStageNo = widget.stageNo;
+    var highestStageNo = widget.stageNo;
+
+    try {
+      final start = await context.read<QuizViewModel>().resolveStartProgress();
+      currentStageNo = start.stageNo;
+      highestStageNo = start.highestStageNo ?? start.stageNo;
+    } catch (_) {
+      final lastClearedStageNo = await ProgressStorage.getLastClearedStageNo(
+        episodeId: widget.episodeId,
+      );
+      final localHighestStageNo = lastClearedStageNo + 1;
+      if (localHighestStageNo > highestStageNo) {
+        highestStageNo = localHighestStageNo;
+        currentStageNo = localHighestStageNo;
+      }
+    }
+
+    if (!mounted) return;
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => StageSelectScreen(
           episodeId: widget.episodeId,
           episodeCode: widget.episodeCode,
-          currentStageNo: widget.stageNo,
-          highestStageNo: widget.stageNo,
+          currentStageNo: currentStageNo,
+          highestStageNo: highestStageNo,
         ),
       ),
     );
@@ -145,45 +169,54 @@ class _QuizScreenState extends State<QuizScreen>
     return showDialog<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.62),
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        title: Text(
-          'HINT',
-          style: TextStyle(
-            fontFamily: AppFonts.title,
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-            color: AppColors.crust,
-          ),
-        ),
-        content: Text(
-          hint,
-          style: TextStyle(
-            fontFamily: AppFonts.body,
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
-            height: 1.45,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: SoundEffectsService().withSelect(
-              () => Navigator.of(context).pop(),
+      builder: (dialogContext) {
+        final maxHeight = MediaQuery.sizeOf(dialogContext).height * 0.72;
+
+        return AlertDialog(
+          backgroundColor: AppColors.surfaceDark,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          title: Text(
+            'HINT',
+            style: TextStyle(
+              fontFamily: AppFonts.title,
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: AppColors.crust,
             ),
-            child: Text(
-              'OK',
-              style: TextStyle(
-                fontFamily: AppFonts.body,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppColors.pumpkin,
+          ),
+          content: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: SingleChildScrollView(
+              child: Text(
+                hint,
+                style: TextStyle(
+                  fontFamily: AppFonts.body,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                  height: 1.45,
+                ),
               ),
             ),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: SoundEffectsService().withSelect(
+                () => Navigator.of(dialogContext).pop(),
+              ),
+              child: Text(
+                'OK',
+                style: TextStyle(
+                  fontFamily: AppFonts.body,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.pumpkin,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -230,12 +263,13 @@ class _QuizScreenState extends State<QuizScreen>
       return;
     }
 
-    _adManager.showAd(
+    final didShowAd = await _adManager.showAdWhenReady(
       onRewardEarned: () async {
         final hasHintAccess = await vm.waitForHintAccess(
           episodeId: widget.episodeId,
           stageNo: widget.stageNo,
-          attempts: 4,
+          attempts: 8,
+          delay: const Duration(milliseconds: 500),
         );
 
         if (!mounted) return;
@@ -247,6 +281,12 @@ class _QuizScreenState extends State<QuizScreen>
         await _loadAndShowHint(vm);
       },
     );
+
+    if (!didShowAd && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('광고를 준비 중입니다. 잠시 후 다시 시도해주세요.')),
+      );
+    }
   }
 
   Future<void> _submitAnswer(QuizViewModel vm) async {
@@ -346,6 +386,12 @@ class _QuizScreenState extends State<QuizScreen>
             SafeArea(
               child: Consumer<QuizViewModel>(
                 builder: (context, vm, _) {
+                  final removesAds = context
+                      .watch<PurchaseViewModel>()
+                      .removesAds;
+                  final isKeyboardOpen =
+                      MediaQuery.viewInsetsOf(context).bottom > 0;
+                  final showBanner = !removesAds && !isKeyboardOpen;
                   // Consumer ?대??먯꽌 ??踰덈쭔 loadStage ?몄텧
                   if (!_hasLoadedStage &&
                       vm.stage == null &&
@@ -369,9 +415,11 @@ class _QuizScreenState extends State<QuizScreen>
                   }
 
                   return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      16,
+                      20,
+                      showBanner ? BannerAdBox.height + 8 : 16,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -431,6 +479,7 @@ class _QuizScreenState extends State<QuizScreen>
               drawingBounds: _drawingBounds,
               strokeScale: _drawingStrokeScale,
             ),
+            const _BottomBannerAd(),
           ],
         ),
       ),
@@ -506,118 +555,127 @@ class _HintAccessDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 320),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.glassCardBackground,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.glassCardBackground),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x55210F20),
-                blurRadius: 18,
-                offset: Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const SizedBox(width: 34),
-                  const Expanded(
-                    child: Text(
-                      'HINT',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontFamily: AppFonts.title,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
+        constraints: BoxConstraints(
+          maxWidth: 320,
+          maxHeight: MediaQuery.sizeOf(context).height * 0.82,
+        ),
+        child: SingleChildScrollView(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.glassCardBackground,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.glassCardBackground),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x55210F20),
+                  blurRadius: 18,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const SizedBox(width: 34),
+                    const Expanded(
+                      child: Text(
+                        'HINT',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: AppFonts.title,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.crust,
+                        ),
+                      ),
+                    ),
+                    Transform.translate(
+                      offset: const Offset(8, 0),
+                      child: IconButton(
+                        onPressed: SoundEffectsService().withSelect(
+                          () => Navigator.of(context).pop(),
+                        ),
+                        icon: const Icon(Icons.close_rounded, size: 22),
                         color: AppColors.crust,
+                        tooltip: '닫기',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 34,
+                          minHeight: 34,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  '광고를 보고 이번 스테이지의 힌트를 받거나, 프리미엄 패키지로 힌트 무제한 제공과 광고 제거를 함께 이용할 수 있어요.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: AppFonts.body,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 46,
+                  child: ElevatedButton.icon(
+                    onPressed: SoundEffectsService().withSelect(
+                      () => Navigator.of(context).pop(_HintAccessAction.ad),
+                    ),
+                    icon: const Icon(
+                      Icons.play_circle_outline_rounded,
+                      size: 20,
+                    ),
+                    label: const Text('광고보고 힌트받기'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.crust,
+                      foregroundColor: AppColors.textOnPumpkin,
+                      elevation: 0,
+                      textStyle: const TextStyle(
+                        fontFamily: AppFonts.body,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                   ),
-                  Transform.translate(
-                    offset: const Offset(8, 0),
-                    child: IconButton(
-                      onPressed: SoundEffectsService().withSelect(
-                        () => Navigator.of(context).pop(),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 46,
+                  child: OutlinedButton.icon(
+                    onPressed: SoundEffectsService().withSelect(
+                      () =>
+                          Navigator.of(context).pop(_HintAccessAction.premium),
+                    ),
+                    icon: const Icon(Icons.workspace_premium_rounded, size: 20),
+                    label: const Text('프리미엄 패키지 구매하기'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: gold,
+                      side: const BorderSide(color: gold, width: 1.4),
+                      textStyle: const TextStyle(
+                        fontFamily: AppFonts.body,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
                       ),
-                      icon: const Icon(Icons.close_rounded, size: 22),
-                      color: AppColors.crust,
-                      tooltip: '닫기',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 34,
-                        minHeight: 34,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                '광고를 보고 이번 스테이지의 힌트를 받거나, 프리미엄 패키지로 힌트 무제한 제공과 광고 제거를 함께 이용할 수 있어요.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: AppFonts.body,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textSecondary,
-                  height: 1.4,
                 ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 46,
-                child: ElevatedButton.icon(
-                  onPressed: SoundEffectsService().withSelect(
-                    () => Navigator.of(context).pop(_HintAccessAction.ad),
-                  ),
-                  icon: const Icon(Icons.play_circle_outline_rounded, size: 20),
-                  label: const Text('광고보고 힌트받기'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.crust,
-                    foregroundColor: AppColors.textOnPumpkin,
-                    elevation: 0,
-                    textStyle: const TextStyle(
-                      fontFamily: AppFonts.body,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: 46,
-                child: OutlinedButton.icon(
-                  onPressed: SoundEffectsService().withSelect(
-                    () => Navigator.of(context).pop(_HintAccessAction.premium),
-                  ),
-                  icon: const Icon(Icons.workspace_premium_rounded, size: 20),
-                  label: const Text('프리미엄 패키지 구매하기'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: gold,
-                    side: const BorderSide(color: gold, width: 1.4),
-                    textStyle: const TextStyle(
-                      fontFamily: AppFonts.body,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -657,36 +715,30 @@ class _QuizStageBody extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
-        final isKeyboardOpen = keyboardHeight > 0;
         final availableHeight = constraints.maxHeight - keyboardHeight - 12;
-        final estimatedContentHeight = constraints.maxWidth + 168;
-        final removesAds = context.watch<PurchaseViewModel>().removesAds;
-        final scale = isKeyboardOpen && availableHeight < estimatedContentHeight
-            ? (availableHeight / estimatedContentHeight).clamp(0.58, 1.0)
-            : 1.0;
+        final estimatedContentHeight =
+            constraints.maxWidth + (stage.nextStageNo == null ? 220 : 176);
+        final contentHeight = math.min(availableHeight, constraints.maxHeight);
+        final mainHeight = math.max(0.0, contentHeight);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SizedBox(
-              height: estimatedContentHeight * scale,
-              child: Transform.scale(
-                scale: scale,
+              height: mainHeight,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
                 alignment: Alignment.topCenter,
                 child: SizedBox(
                   width: constraints.maxWidth,
+                  height: estimatedContentHeight,
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [..._mainChildren(), ..._errorChildren()],
                   ),
                 ),
               ),
             ),
-            if (!isKeyboardOpen && !removesAds) ...[
-              const SizedBox(height: 8),
-              const Expanded(child: _BannerAdReserve()),
-            ],
           ],
         );
       },
@@ -788,23 +840,31 @@ class _QuestionTitle extends StatelessWidget {
   }
 }
 
-class _BannerAdReserve extends StatelessWidget {
-  const _BannerAdReserve();
+class _BottomBannerAd extends StatelessWidget {
+  const _BottomBannerAd();
 
   @override
   Widget build(BuildContext context) {
+    final removesAds = context.watch<PurchaseViewModel>().removesAds;
+    final isKeyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    if (removesAds || isKeyboardOpen) {
+      return const SizedBox.shrink();
+    }
+
     final screenWidth = MediaQuery.sizeOf(context).width;
 
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Transform.translate(
-        offset: const Offset(0, 16),
-        child: OverflowBox(
-          minWidth: screenWidth,
-          maxWidth: screenWidth,
-          alignment: Alignment.bottomCenter,
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: SafeArea(
+        top: false,
+        left: false,
+        right: false,
+        child: Center(
           child: SizedBox(
             width: screenWidth,
+            height: BannerAdBox.height,
             child: BannerAdBox(width: screenWidth),
           ),
         ),

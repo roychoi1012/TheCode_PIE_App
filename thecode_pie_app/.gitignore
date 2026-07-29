@@ -61,3 +61,10 @@ app.*.map.json
 
 # Generated local config
 /lib/core/config/ad_config.g.dart
+
+# Android release signing
+/android/key.properties
+/android/upload-keystore.jks
+
+# Release artifacts
+/releases/*.aab

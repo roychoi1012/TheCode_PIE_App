@@ -15,7 +15,7 @@ class SoundEffectsService {
   static const String _enabledKey = 'sound_effect_enabled';
   static const String _vibrationKey = 'sound_vibration_enabled';
   static const MethodChannel _vibrationChannel = MethodChannel(
-    'com.clavis.thecodepie/vibration',
+    'com.clavis.thecodearc/vibration',
   );
   static const double _selectVolume = 0.45;
   static const double _resultVolume = 0.85;

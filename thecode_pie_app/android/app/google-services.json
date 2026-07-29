@@ -7,14 +7,14 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:576552375806:android:afd36fffea4b0052a75caf",
+        "mobilesdk_app_id": "1:576552375806:android:3354a60642282e8ca75caf",
         "android_client_info": {
-          "package_name": "com.clavis.thecodepie"
+          "package_name": "com.clavis.thecodearc"
         }
       },
       "oauth_client": [
         {
-          "client_id": "576552375806-hc8mbm74ppfgri5bl82mf8tcfb4qhf8q.apps.googleusercontent.com",
+          "client_id": "576552375806-70gg1ohb5u1sg84kbg4advpfstpsb0ob.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -27,7 +27,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "576552375806-hc8mbm74ppfgri5bl82mf8tcfb4qhf8q.apps.googleusercontent.com",
+              "client_id": "576552375806-70gg1ohb5u1sg84kbg4advpfstpsb0ob.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

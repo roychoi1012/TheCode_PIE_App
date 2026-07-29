@@ -166,8 +166,7 @@ class QuizViewModel extends ChangeNotifier {
         }
       }
 
-      _errorMessage =
-          'Reward verification is pending. Please tap HINT again shortly.';
+      _errorMessage = '광고 보상 확인이 아직 도착하지 않았어요. 잠시 후 HINT를 다시 눌러주세요.';
       return false;
     } catch (e) {
       _errorMessage = e.toString();

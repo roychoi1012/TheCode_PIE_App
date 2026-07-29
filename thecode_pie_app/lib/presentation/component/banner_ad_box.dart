@@ -26,14 +26,11 @@ class _BannerAdBoxState extends State<BannerAdBox> {
       final configured = admobAndroidBannerUnitId.isNotEmpty
           ? admobAndroidBannerUnitId
           : (dotenv.env['ADMOB_ANDROID_BANNER_UNIT_ID'] ?? '');
-      return configured.isNotEmpty
-          ? configured
-          : 'ca-app-pub-3940256099942544/6300978111';
+      return configured;
     }
 
     if (Platform.isIOS) {
-      return dotenv.env['ADMOB_IOS_BANNER_UNIT_ID'] ??
-          'ca-app-pub-3940256099942544/2934735716';
+      return dotenv.env['ADMOB_IOS_BANNER_UNIT_ID'] ?? '';
     }
 
     return '';
@@ -96,7 +93,11 @@ class _BannerAdBoxState extends State<BannerAdBox> {
           });
         },
         onAdFailedToLoad: (ad, error) {
-          debugPrint('[BannerAdBox] failed to load: ${error.message}');
+          debugPrint(
+            '[BannerAdBox] failed to load: '
+            'code=${error.code} domain=${error.domain} '
+            'message=${error.message}',
+          );
           ad.dispose();
         },
       ),

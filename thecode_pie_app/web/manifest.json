@@ -1,11 +1,11 @@
 {
-    "name": "thecode_pie_app",
-    "short_name": "thecode_pie_app",
+    "name": "ARC",
+    "short_name": "ARC",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "The Code ARC",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
