@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/constants/app_constants.dart';
 import 'package:thecode_pie_app/core/constants/app_fonts.dart';
 import 'package:thecode_pie_app/core/services/sound_effects_service.dart';
 import 'package:thecode_pie_app/presentation/component/premium_purchase_dialog.dart';
@@ -9,6 +10,7 @@ import 'package:thecode_pie_app/presentation/purchase/purchase_view_model.dart';
 import 'package:thecode_pie_app/presentation/screen/quiz/quiz_screen_root.dart';
 import 'package:thecode_pie_app/presentation/screen/quiz/quiz_view_model.dart';
 import 'package:thecode_pie_app/providers/app_providers.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class StageSelectScreen extends StatelessWidget {
   const StageSelectScreen({
@@ -25,8 +27,8 @@ class StageSelectScreen extends StatelessWidget {
   final int highestStageNo;
 
   static const int _freeStageCount = 20;
-  static const int _premiumStageCount = 30;
-  static const int _totalStageCount = _freeStageCount + _premiumStageCount;
+  static const int premiumStageCount = 30;
+  static const int _totalStageCount = _freeStageCount + premiumStageCount;
 
   @override
   Widget build(BuildContext context) {
@@ -38,8 +40,12 @@ class StageSelectScreen extends StatelessWidget {
         : rawUnlockedThrough;
     final purchaseViewModel = context.watch<PurchaseViewModel>();
     final hasPremiumAccess =
-        unlockedThrough > _freeStageCount ||
-        purchaseViewModel.unlocksPremiumStages;
+        AppConstants.inAppPurchaseEnabled &&
+        (unlockedThrough > _freeStageCount ||
+            purchaseViewModel.unlocksPremiumStages);
+
+    final clearedThrough = currentStageNo > 1 ? currentStageNo - 1 : 0;
+    final hasClearedAll = clearedThrough >= _totalStageCount;
 
     return Scaffold(
       body: Stack(
@@ -77,12 +83,16 @@ class StageSelectScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  _PremiumBanner(
-                    hasPremiumAccess: hasPremiumAccess,
-                    onTap: hasPremiumAccess
-                        ? null
-                        : () => _openPremiumPurchase(context),
-                  ),
+                  if (AppConstants.inAppPurchaseEnabled) ...[
+                    _PremiumBanner(
+                      hasPremiumAccess: hasPremiumAccess,
+                      onTap: hasPremiumAccess
+                          ? null
+                          : () => _openPremiumPurchase(context),
+                    ),
+                  ] else ...[
+                    const _ComingSoonBanner(),
+                  ],
                   const SizedBox(height: 18),
                   Expanded(
                     child: LayoutBuilder(
@@ -97,6 +107,12 @@ class StageSelectScreen extends StatelessWidget {
                               mainAxisSpacing: 9,
                               childAspectRatio: 1,
                             );
+
+                        const spacing = 9.0;
+                        final cellWidth =
+                            (constraints.maxWidth -
+                                spacing * (crossAxisCount - 1)) /
+                            crossAxisCount;
 
                         return CustomScrollView(
                           slivers: [
@@ -130,20 +146,34 @@ class StageSelectScreen extends StatelessWidget {
                                 value: '21-50',
                               ),
                             ),
-                            SliverGrid(
-                              gridDelegate: gridDelegate,
-                              delegate: SliverChildBuilderDelegate((
-                                context,
-                                index,
-                              ) {
-                                final stageNo = _freeStageCount + index + 1;
-                                return _buildStageTile(
-                                  context,
-                                  stageNo: stageNo,
-                                  unlockedThrough: unlockedThrough,
-                                  hasPremiumAccess: hasPremiumAccess,
-                                );
-                              }, childCount: _premiumStageCount),
+                            SliverToBoxAdapter(
+                              child: Wrap(
+                                spacing: spacing,
+                                runSpacing: spacing,
+                                children: [
+                                  for (var i = 0; i < premiumStageCount; i++)
+                                    SizedBox(
+                                      width: cellWidth,
+                                      height: cellWidth,
+                                      child: _buildStageTile(
+                                        context,
+                                        stageNo: _freeStageCount + i + 1,
+                                        unlockedThrough: unlockedThrough,
+                                        hasPremiumAccess: hasPremiumAccess,
+                                      ),
+                                    ),
+                                  if (hasClearedAll)
+                                    SizedBox(
+                                      width: _arcEndTileWidth(
+                                        cellWidth: cellWidth,
+                                        spacing: spacing,
+                                        crossAxisCount: crossAxisCount,
+                                      ),
+                                      height: cellWidth,
+                                      child: const _ArcEndTile(),
+                                    ),
+                                ],
+                              ),
                             ),
                             const SliverToBoxAdapter(
                               child: SizedBox(height: 4),
@@ -174,11 +204,13 @@ class StageSelectScreen extends StatelessWidget {
     final isProgressUnlocked = stageNo <= unlockedThrough;
     final isPremiumLocked = isPremium && !hasPremiumAccess;
     final isUnlocked = isProgressUnlocked && !isPremiumLocked;
+    final isCurrentStage = stageNo == currentStageNo;
 
     return _StageTile(
       stageNo: stageNo,
       isUnlocked: isUnlocked,
       isCleared: isCleared,
+      isCurrentStage: isCurrentStage,
       isPremium: isPremium,
       isPremiumLocked: isPremiumLocked,
       onTap: isUnlocked
@@ -205,6 +237,57 @@ class StageSelectScreen extends StatelessWidget {
   }
 
   void _openPremiumPurchase(BuildContext context) {
+    if (!AppConstants.inAppPurchaseEnabled) {
+      showDialog(
+        context: context,
+        barrierColor: Colors.black.withValues(alpha: 0.55),
+        builder: (dialogContext) {
+          return AlertDialog(
+            backgroundColor: AppColors.surfaceDark,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            title: const Text(
+              'PREMIUM',
+              style: TextStyle(
+                fontFamily: AppFonts.title,
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: AppColors.crust,
+              ),
+            ),
+            content: const Text(
+              '프리미엄 스테이지는 곧 오픈될 예정이에요.\n조금만 기다려주세요!',
+              style: TextStyle(
+                fontFamily: AppFonts.body,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: SoundEffectsService().withSelect(
+                  () => Navigator.of(dialogContext).pop(),
+                ),
+                child: const Text(
+                  'OK',
+                  style: TextStyle(
+                    fontFamily: AppFonts.body,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.pumpkin,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.55),
@@ -214,6 +297,18 @@ class StageSelectScreen extends StatelessWidget {
       },
     );
   }
+}
+
+/// 마지막 줄에서 남는 칸 수만큼 ARC-END 타일 너비를 계산.
+/// 정확히 나누어 떨어지면(빈 칸이 없으면) 한 줄 전체를 차지하게 함.
+double _arcEndTileWidth({
+  required double cellWidth,
+  required double spacing,
+  required int crossAxisCount,
+}) {
+  final remainder = StageSelectScreen.premiumStageCount % crossAxisCount;
+  final span = remainder == 0 ? crossAxisCount : remainder;
+  return cellWidth * span + spacing * (span - 1);
 }
 
 class _PremiumBanner extends StatelessWidget {
@@ -329,6 +424,53 @@ class _PremiumBanner extends StatelessWidget {
   }
 }
 
+class _ComingSoonBanner extends StatelessWidget {
+  const _ComingSoonBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.textOnPumpkin.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.textOnPumpkin.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.hourglass_empty_rounded,
+              size: 18,
+              color: AppColors.textOnPumpkin,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'PREMIUM COMING SOON',
+              style: TextStyle(
+                fontFamily: AppFonts.body,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                color: AppColors.textOnPumpkin,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StageSectionHeader extends StatelessWidget {
   const _StageSectionHeader({required this.label, required this.value});
 
@@ -378,6 +520,7 @@ class _StageTile extends StatelessWidget {
     required this.stageNo,
     required this.isUnlocked,
     required this.isCleared,
+    required this.isCurrentStage,
     required this.isPremium,
     required this.isPremiumLocked,
     required this.onTap,
@@ -386,6 +529,7 @@ class _StageTile extends StatelessWidget {
   final int stageNo;
   final bool isUnlocked;
   final bool isCleared;
+  final bool isCurrentStage;
   final bool isPremium;
   final bool isPremiumLocked;
   final VoidCallback? onTap;
@@ -393,39 +537,74 @@ class _StageTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const premiumUnlockedColor = Color(0xFFB7E3EE);
+    const clearedGreen = Color(0xFF8FCB89);
+
     final background = isPremiumLocked
         ? AppColors.plum.withValues(alpha: 0.24)
+        : isCleared
+        ? clearedGreen
+        : isCurrentStage
+        ? Colors.white
         : isPremium && isUnlocked
-        ? premiumUnlockedColor.withValues(alpha: isCleared ? 0.94 : 0.82)
+        ? premiumUnlockedColor.withValues(alpha: 0.82)
         : isUnlocked
-        ? Colors.white.withValues(alpha: isCleared ? 0.9 : 0.72)
+        ? Colors.white.withValues(alpha: 0.72)
         : AppColors.textOnPumpkin.withValues(alpha: 0.16);
+
     final foreground = isPremiumLocked
         ? AppColors.textOnPumpkin.withValues(alpha: 0.42)
         : isUnlocked
         ? AppColors.textOnLight
         : AppColors.textOnPumpkin.withValues(alpha: 0.3);
 
-    return Material(
-      color: background,
-      borderRadius: BorderRadius.circular(8),
-      elevation: isUnlocked ? 2 : 0,
-      shadowColor: const Color(0x332F2330),
-      child: InkWell(
-        onTap: SoundEffectsService().withSelect(onTap),
+    // 입체감을 위한 그라데이션 (밝은 위 -> 어두운 아래)
+    final gradientColors = isUnlocked
+        ? [
+            Color.lerp(background, Colors.white, 0.22)!,
+            Color.lerp(background, Colors.black, 0.06)!,
+          ]
+        : [background, background];
+
+    return Container(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isPremiumLocked
-                  ? AppColors.plum.withValues(alpha: 0.32)
-                  : isUnlocked
-                  ? AppColors.textOnPumpkin.withValues(alpha: 0.2)
-                  : AppColors.textOnPumpkin.withValues(alpha: 0.16),
-              width: 1,
-            ),
-          ),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: gradientColors,
+        ),
+        boxShadow: isUnlocked
+            ? [
+                // 아래쪽 그림자 (떠 있는 느낌)
+                const BoxShadow(
+                  color: Color(0x40241708),
+                  blurRadius: 6,
+                  offset: Offset(0, 4),
+                ),
+                // 위쪽 하이라이트 (살짝 눌린 듯한 광택)
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  blurRadius: 0,
+                  spreadRadius: -1,
+                  offset: const Offset(0, 1),
+                ),
+              ]
+            : null,
+        border: Border.all(
+          color: isPremiumLocked
+              ? AppColors.plum.withValues(alpha: 0.32)
+              : isUnlocked
+              ? Colors.black.withValues(alpha: 0.08)
+              : AppColors.textOnPumpkin.withValues(alpha: 0.16),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: SoundEffectsService().withSelect(onTap),
+          borderRadius: BorderRadius.circular(8),
           child: Stack(
             children: [
               Center(
@@ -436,6 +615,14 @@ class _StageTile extends StatelessWidget {
                     fontSize: 25,
                     fontWeight: FontWeight.w700,
                     color: foreground,
+                    shadows: isUnlocked
+                        ? [
+                            Shadow(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
                   ),
                 ),
               ),
@@ -448,17 +635,7 @@ class _StageTile extends StatelessWidget {
                     size: 15,
                     color: isPremiumLocked
                         ? AppColors.plum.withValues(alpha: 0.72)
-                        : AppColors.pumpkin,
-                  ),
-                ),
-              if (isCleared)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Icon(
-                    Icons.check_circle_rounded,
-                    size: 16,
-                    color: AppColors.sage.withValues(alpha: 0.95),
+                        : Colors.yellow[700],
                   ),
                 ),
               if (!isUnlocked)
@@ -468,6 +645,78 @@ class _StageTile extends StatelessWidget {
                   child: Icon(Icons.lock_rounded, size: 16, color: foreground),
                 ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ArcEndTile extends StatelessWidget {
+  const _ArcEndTile();
+
+  static const String _linkUrl = 'https://ko-fi.com/claviskr';
+
+  Future<void> _openLink() async {
+    final uri = Uri.parse(_linkUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const deepYellow = Color(0xFFF0C64A);
+    const borderGold = Color(0xFFB8862A);
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color.lerp(deepYellow, Colors.white, 0.18)!,
+            Color.lerp(deepYellow, Colors.black, 0.06)!,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderGold, width: 1.4),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x40241708),
+            blurRadius: 6,
+            offset: Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Color(0x59FFFFFF),
+            blurRadius: 0,
+            spreadRadius: -1,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: SoundEffectsService().withSelect(_openLink),
+          borderRadius: BorderRadius.circular(8),
+          child: const Center(
+            child: Text(
+              'ARC - END\nMADE BY CLAVIS',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: AppFonts.title,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.4,
+                height: 1.3,
+                color: Color(0xFF5C3F0E),
+                shadows: [
+                  Shadow(color: Color(0x59FFFFFF), offset: Offset(0, 1)),
+                ],
+              ),
+            ),
           ),
         ),
       ),

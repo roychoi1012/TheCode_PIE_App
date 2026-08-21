@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:thecode_pie_app/core/constants/app_colors.dart';
+import 'package:thecode_pie_app/core/constants/app_constants.dart';
 import 'package:thecode_pie_app/core/constants/app_fonts.dart';
 import 'package:thecode_pie_app/core/services/ad_manager_service.dart';
 import 'package:thecode_pie_app/core/services/sound_effects_service.dart';
@@ -41,7 +42,7 @@ class QuizScreen extends StatefulWidget {
 }
 
 class _QuizScreenState extends State<QuizScreen>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   final TextEditingController _answerController = TextEditingController();
   final FocusNode _answerFocusNode = FocusNode();
   final DrawingBoardController _drawingController = DrawingBoardController();
@@ -52,8 +53,10 @@ class _QuizScreenState extends State<QuizScreen>
   double _drawingStrokeScale = 1.0;
   bool _hasLoadedStage = false;
   bool _showWrongAnswer = false;
+  bool _showCorrectAnswer = false;
   bool _isReturningToStageSelect = false;
   late final AnimationController _wrongAnswerController;
+  late final AnimationController _correctAnswerController;
 
   final AdManagerService _adManager = AdManagerService();
 
@@ -63,6 +66,7 @@ class _QuizScreenState extends State<QuizScreen>
       stageNo: stageNo,
     );
     if (!mounted) return;
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => ChangeNotifierProvider<QuizViewModel>(
@@ -77,25 +81,29 @@ class _QuizScreenState extends State<QuizScreen>
     );
   }
 
-  Future<void> _goToStageSelect() async {
+  Future<void> _goToStageSelect({int? forceCurrentStageNo}) async {
     if (_isReturningToStageSelect) return;
     _isReturningToStageSelect = true;
 
-    var currentStageNo = widget.stageNo;
-    var highestStageNo = widget.stageNo;
+    var currentStageNo = forceCurrentStageNo ?? widget.stageNo;
+    var highestStageNo = forceCurrentStageNo ?? widget.stageNo;
 
-    try {
-      final start = await context.read<QuizViewModel>().resolveStartProgress();
-      currentStageNo = start.stageNo;
-      highestStageNo = start.highestStageNo ?? start.stageNo;
-    } catch (_) {
-      final lastClearedStageNo = await ProgressStorage.getLastClearedStageNo(
-        episodeId: widget.episodeId,
-      );
-      final localHighestStageNo = lastClearedStageNo + 1;
-      if (localHighestStageNo > highestStageNo) {
-        highestStageNo = localHighestStageNo;
-        currentStageNo = localHighestStageNo;
+    if (forceCurrentStageNo == null) {
+      try {
+        final start = await context
+            .read<QuizViewModel>()
+            .resolveStartProgress();
+        currentStageNo = start.stageNo;
+        highestStageNo = start.highestStageNo ?? start.stageNo;
+      } catch (_) {
+        final lastClearedStageNo = await ProgressStorage.getLastClearedStageNo(
+          episodeId: widget.episodeId,
+        );
+        final localHighestStageNo = lastClearedStageNo + 1;
+        if (localHighestStageNo > highestStageNo) {
+          highestStageNo = localHighestStageNo;
+          currentStageNo = localHighestStageNo;
+        }
       }
     }
 
@@ -121,7 +129,11 @@ class _QuizScreenState extends State<QuizScreen>
       vsync: this,
       duration: const Duration(milliseconds: 360),
     );
-    // ?붾㈃ 吏꾩엯 ?쒖젏??"留덉?留됱쑝濡???怨??쇰줈 媛꾩＜?섏뿬 ???
+    _correctAnswerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+    // 화면 진입 시점을 "마지막으로 푼 스테이지"로 간주하여 저장
     ProgressStorage.saveLastProgress(
       episodeId: widget.episodeId,
       stageNo: widget.stageNo,
@@ -154,6 +166,7 @@ class _QuizScreenState extends State<QuizScreen>
     _answerController.dispose();
     _answerFocusNode.dispose();
     _wrongAnswerController.dispose();
+    _correctAnswerController.dispose();
     _drawingController.dispose();
     super.dispose();
   }
@@ -170,51 +183,62 @@ class _QuizScreenState extends State<QuizScreen>
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.62),
       builder: (dialogContext) {
-        final maxHeight = MediaQuery.sizeOf(dialogContext).height * 0.72;
+        final screenHeight = MediaQuery.sizeOf(dialogContext).height;
 
-        return AlertDialog(
+        return Dialog(
           backgroundColor: AppColors.surfaceDark,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          title: Text(
-            'HINT',
-            style: TextStyle(
-              fontFamily: AppFonts.title,
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: AppColors.crust,
-            ),
-          ),
-          content: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxHeight),
+          child: ConstrainedBox(
+            // 화면 높이의 80%를 다이얼로그 전체(제목+내용+버튼)의 상한으로 삼음
+            constraints: BoxConstraints(maxHeight: screenHeight * 0.8),
             child: SingleChildScrollView(
-              child: Text(
-                hint,
-                style: TextStyle(
-                  fontFamily: AppFonts.body,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
-                  height: 1.45,
-                ),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'HINT',
+                    style: TextStyle(
+                      fontFamily: AppFonts.title,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.crust,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    hint,
+                    style: TextStyle(
+                      fontFamily: AppFonts.body,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: SoundEffectsService().withSelect(
+                        () => Navigator.of(dialogContext).pop(),
+                      ),
+                      child: Text(
+                        'OK',
+                        style: TextStyle(
+                          fontFamily: AppFonts.body,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.pumpkin,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: SoundEffectsService().withSelect(
-                () => Navigator.of(dialogContext).pop(),
-              ),
-              child: Text(
-                'OK',
-                style: TextStyle(
-                  fontFamily: AppFonts.body,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.pumpkin,
-                ),
-              ),
-            ),
-          ],
         );
       },
     );
@@ -229,6 +253,7 @@ class _QuizScreenState extends State<QuizScreen>
     if (!mounted) return;
 
     if (hint != null) {
+      vm.clearError(); // 힌트 성공적으로 로드됐으면 화면에 남은 에러 메시지 제거
       await _showHintDialog(hint.content);
     }
   }
@@ -268,7 +293,7 @@ class _QuizScreenState extends State<QuizScreen>
         final hasHintAccess = await vm.waitForHintAccess(
           episodeId: widget.episodeId,
           stageNo: widget.stageNo,
-          attempts: 8,
+          attempts: 15,
           delay: const Duration(milliseconds: 500),
         );
 
@@ -309,6 +334,9 @@ class _QuizScreenState extends State<QuizScreen>
     }
 
     await SoundEffectsService().playCorrect();
+    await _triggerCorrectAnswerFeedback();
+    if (!mounted) return;
+
     final progress = await vm.completeStage(
       episodeId: widget.episodeId,
       stageNo: widget.stageNo,
@@ -318,6 +346,9 @@ class _QuizScreenState extends State<QuizScreen>
     final next = progress.nextStageNo;
     if (next != null) {
       await _goToStage(stageNo: next);
+    } else {
+      // 마지막 스테이지: 서버가 currentStageNo를 안 올려줄 수 있으니 강제로 +1 전달
+      await _goToStageSelect(forceCurrentStageNo: widget.stageNo + 1);
     }
   }
 
@@ -334,6 +365,15 @@ class _QuizScreenState extends State<QuizScreen>
       ..stop()
       ..reset();
     setState(() => _showWrongAnswer = false);
+  }
+
+  Future<void> _triggerCorrectAnswerFeedback() async {
+    setState(() => _showCorrectAnswer = true);
+    _correctAnswerController.value = 0;
+    await _correctAnswerController.forward();
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+    setState(() => _showCorrectAnswer = false);
   }
 
   void _reloadStage(QuizViewModel vm) {
@@ -392,7 +432,7 @@ class _QuizScreenState extends State<QuizScreen>
                   final isKeyboardOpen =
                       MediaQuery.viewInsetsOf(context).bottom > 0;
                   final showBanner = !removesAds && !isKeyboardOpen;
-                  // Consumer ?대??먯꽌 ??踰덈쭔 loadStage ?몄텧
+                  // Consumer 내부에서 한 번만 loadStage 호출
                   if (!_hasLoadedStage &&
                       vm.stage == null &&
                       !vm.isLoadingStage) {
@@ -468,6 +508,17 @@ class _QuizScreenState extends State<QuizScreen>
                   duration: const Duration(milliseconds: 80),
                   child: ColoredBox(
                     color: const Color(0xFF841D22).withValues(alpha: 0.3),
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedOpacity(
+                  opacity: _showCorrectAnswer ? 1 : 0,
+                  duration: const Duration(milliseconds: 150),
+                  child: _TreasureChestCelebration(
+                    controller: _correctAnswerController,
                   ),
                 ),
               ),
@@ -651,29 +702,35 @@ class _HintAccessDialog extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                SizedBox(
-                  height: 46,
-                  child: OutlinedButton.icon(
-                    onPressed: SoundEffectsService().withSelect(
-                      () =>
-                          Navigator.of(context).pop(_HintAccessAction.premium),
-                    ),
-                    icon: const Icon(Icons.workspace_premium_rounded, size: 20),
-                    label: const Text('프리미엄 패키지 구매하기'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: gold,
-                      side: const BorderSide(color: gold, width: 1.4),
-                      textStyle: const TextStyle(
-                        fontFamily: AppFonts.body,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
+                if (AppConstants.inAppPurchaseEnabled) ...[
+                  SizedBox(
+                    height: 46,
+                    child: OutlinedButton.icon(
+                      onPressed: SoundEffectsService().withSelect(
+                        () => Navigator.of(
+                          context,
+                        ).pop(_HintAccessAction.premium),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      icon: const Icon(
+                        Icons.workspace_premium_rounded,
+                        size: 20,
+                      ),
+                      label: const Text('프리미엄 패키지 구매하기'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: gold,
+                        side: const BorderSide(color: gold, width: 1.4),
+                        textStyle: const TextStyle(
+                          fontFamily: AppFonts.body,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -717,7 +774,9 @@ class _QuizStageBody extends StatelessWidget {
         final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
         final availableHeight = constraints.maxHeight - keyboardHeight - 12;
         final estimatedContentHeight =
-            constraints.maxWidth + (stage.nextStageNo == null ? 220 : 176);
+            constraints.maxWidth +
+            (stage.nextStageNo == null ? 220 : 176) +
+            (errorMessage != null ? 40 : 0); // 에러 메시지 노출 시 여유 공간 추가
         final contentHeight = math.min(availableHeight, constraints.maxHeight);
         final mainHeight = math.max(0.0, contentHeight);
 
@@ -748,14 +807,14 @@ class _QuizStageBody extends StatelessWidget {
   List<Widget> _mainChildren() {
     return [
       _QuestionTitle(stage: stage),
-      const SizedBox(height: 25),
+      const SizedBox(height: 40),
       _QuestionArea(
         key: questionAreaKey,
         imageKey: imageAreaKey,
         stage: stage,
         onRefresh: onRefresh,
       ),
-      const SizedBox(height: 20),
+      const SizedBox(height: 30),
       _AnswerDock(
         controller: answerController,
         focusNode: answerFocusNode,
@@ -816,27 +875,369 @@ class _QuestionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = stage.title.trim();
-    final text = title.isEmpty
-        ? 'STAGE ${stage.stageNo}.'
-        : 'STAGE ${stage.stageNo}. $title';
-
     return Padding(
-      padding: const EdgeInsets.only(left: 10, right: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Text(
-        text,
-        textAlign: TextAlign.left,
-        maxLines: 2,
+        'STAGE ${stage.stageNo}',
+        textAlign: TextAlign.center,
+        maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontFamily: AppFonts.title,
-          fontSize: 30,
+          fontSize: 40,
           fontWeight: FontWeight.w900,
           color: AppColors.textOnPumpkin.withValues(alpha: 0.92),
           height: 1.08,
         ),
       ),
     );
+  }
+}
+
+/// 황금열쇠가 보물상자를 열고, 안에서 빛이 폭발하듯 뿜어져 나오는 연출.
+class _TreasureChestCelebration extends StatelessWidget {
+  const _TreasureChestCelebration({required this.controller});
+
+  final AnimationController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) {
+        final t = controller.value;
+
+        // 열쇠가 위에서 내려와 상자 자물쇠에 꽂히는 구간 (0.0 ~ 0.32)
+        final keyDropProgress = Curves.easeOutBack.transform(
+          (t / 0.32).clamp(0.0, 1.0),
+        );
+        // 열쇠가 돌아가는 구간 (0.28 ~ 0.42)
+        final keyTurnProgress = Curves.easeInOut.transform(
+          ((t - 0.28) / 0.14).clamp(0.0, 1.0),
+        );
+        // 뚜껑이 열리는 구간 (0.4 ~ 0.8) — 구간을 늘려서 천천히 열리게
+        final lidOpenProgress = Curves.easeOutCubic.transform(
+          ((t - 0.4) / 0.4).clamp(0.0, 1.0),
+        );
+        final isOpen = t > 0.55;
+        // 빛 폭발 구간 (0.55 ~ 1.0) — 뚜껑이 충분히 열린 뒤에 터지도록 늦춤
+        final lightBurstProgress = ((t - 0.55) / 0.45).clamp(0.0, 1.0);
+        final rayOpacity = (1 - lightBurstProgress).clamp(0.0, 1.0);
+        // 화면 전체 플래시 (아주 짧게, 0.55~0.65)
+        final flashOpacity =
+            (1 - ((t - 0.55) / 0.1).clamp(0.0, 1.0)) * (t > 0.55 ? 1.0 : 0.0);
+        // 반짝이 파티클이 사방으로 튀어나감 (0.55 ~ 1.0)
+        final sparkleProgress = ((t - 0.55) / 0.45).clamp(
+          0.0,
+          1.0,
+        ); // 텍스트 페이드인 (0.6 ~ 0.85)
+        final textOpacity = ((t - 0.6) / 0.25).clamp(0.0, 1.0);
+        final textScale = 0.85 + 0.15 * textOpacity;
+
+        final screenSize = MediaQuery.sizeOf(context);
+        final maxSide = math.max(screenSize.width, screenSize.height);
+
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // 화면 전체 플래시 (빛이 터지는 순간)
+            if (flashOpacity > 0)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.white.withValues(alpha: flashOpacity * 0.55),
+                ),
+              ),
+
+            // 뒤쪽 큰 빛 후광 (은은하게 계속 남음)
+            Opacity(
+              opacity: (lightBurstProgress * 0.7).clamp(0.0, 0.7),
+              child: Container(
+                width: maxSide * 0.9,
+                height: maxSide * 0.9,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      const Color(0xFFFFE9A8).withValues(alpha: 0.55),
+                      const Color(0xFFFFE9A8).withValues(alpha: 0),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // 방사형 광선 (뚜껑 열리는 순간부터 회전하며 뿜어져 나옴)
+            if (rayOpacity > 0)
+              Opacity(
+                opacity: rayOpacity,
+                child: Transform.rotate(
+                  angle: lightBurstProgress * 1.2,
+                  child: CustomPaint(
+                    size: Size(maxSide * 0.85, maxSide * 0.85),
+                    painter: _LightRayPainter(
+                      progress: lightBurstProgress,
+                      color: const Color(0xFFFFD86B),
+                    ),
+                  ),
+                ),
+              ),
+
+            // 반짝이 파티클 12개, 방사형으로 퍼짐
+            if (sparkleProgress > 0)
+              ...List.generate(12, (i) {
+                final angle = (i / 12) * 2 * math.pi;
+                final distance = 130 * sparkleProgress;
+                final dx = math.cos(angle) * distance;
+                final dy =
+                    math.sin(angle) * distance -
+                    40 * sparkleProgress; // 위로 살짝 떠오르는 느낌
+                final sparkleOpacity = (1 - sparkleProgress).clamp(0.0, 1.0);
+                final isCoin = i % 3 == 0;
+                return Transform.translate(
+                  offset: Offset(dx, dy),
+                  child: Opacity(
+                    opacity: sparkleOpacity,
+                    child: Transform.rotate(
+                      angle: sparkleProgress * math.pi * (i.isEven ? 3 : -3),
+                      child: Icon(
+                        isCoin
+                            ? Icons.monetization_on_rounded
+                            : Icons.auto_awesome_rounded,
+                        size: isCoin ? 22 : 14 + (i % 3) * 4,
+                        color: isCoin
+                            ? const Color(0xFFFFD54F)
+                            : const Color(0xFFFFECAF),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+
+            // 보물상자 본체
+            Transform.translate(
+              offset: Offset(0, isOpen ? -6 : 0),
+              child: SizedBox(
+                width: 160,
+                height: 150,
+                child: Stack(
+                  alignment: Alignment.bottomCenter,
+                  clipBehavior: Clip.none,
+                  children: [
+                    // 상자 안쪽에서 뿜어져 나오는 빛 (뚜껑 열릴 때만)
+                    if (lidOpenProgress > 0)
+                      Positioned(
+                        bottom: 60,
+                        child: Opacity(
+                          opacity: (lidOpenProgress).clamp(0.0, 1.0),
+                          child: Container(
+                            width: 120 * lidOpenProgress,
+                            height: 90 * lidOpenProgress,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              gradient: const LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [Color(0xFFFFF6D9), Color(0x00FFF6D9)],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    // 상자 몸통
+                    Positioned(
+                      bottom: 0,
+                      child: Container(
+                        width: 150,
+                        height: 78,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          gradient: const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0xFF9A6A2F), Color(0xFF6E4A1E)],
+                          ),
+                          border: Border.all(
+                            color: const Color(0xFFFFD86B),
+                            width: 2.4,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x552B1A08),
+                              blurRadius: 14,
+                              offset: Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFD86B),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFF6E4A1E),
+                                width: 2,
+                              ),
+                            ),
+                            child: Icon(
+                              isOpen
+                                  ? Icons.lock_open_rounded
+                                  : Icons.lock_rounded,
+                              size: 18,
+                              color: const Color(0xFF6E4A1E),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // 상자 뚜껑 (위로 회전하며 열림)
+                    Positioned(
+                      bottom: 68,
+                      child: Transform(
+                        alignment: Alignment.bottomCenter,
+                        transform: Matrix4.identity()
+                          ..setEntry(3, 2, 0.0016)
+                          ..rotateX(-lidOpenProgress * 1.9),
+                        child: Container(
+                          width: 154,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              topRight: Radius.circular(16),
+                            ),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Color(0xFFB07E3D), Color(0xFF8A5E2A)],
+                            ),
+                            border: Border.all(
+                              color: const Color(0xFFFFD86B),
+                              width: 2.4,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // 황금열쇠: 위에서 내려와 자물쇠에 꽂히고 돌아감
+            if (t < 0.4)
+              Transform.translate(
+                offset: Offset(0, -110 * (1 - keyDropProgress) + 4),
+                child: Transform.rotate(
+                  angle: math.pi / 2 + (keyTurnProgress * math.pi * 0.9),
+                  child: Opacity(
+                    opacity: t < 0.36
+                        ? 1
+                        : (1 - ((t - 0.36) / 0.06)).clamp(0.0, 1.0),
+                    child: const Icon(
+                      Icons.vpn_key_rounded,
+                      size: 46,
+                      color: Color(0xFFFFD86B),
+                    ),
+                  ),
+                ),
+              ),
+
+            // "정답입니다!" 텍스트
+            Positioned(
+              bottom: 90,
+              child: Transform.scale(
+                scale: textScale,
+                child: Opacity(
+                  opacity: textOpacity,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 22,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.sage.withValues(alpha: 0.96),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x50241708),
+                          blurRadius: 16,
+                          offset: Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      '정답입니다!',
+                      style: TextStyle(
+                        fontFamily: AppFonts.title,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// 상자에서 뿜어져 나오는 방사형 광선을 그리는 커스텀 페인터.
+class _LightRayPainter extends CustomPainter {
+  _LightRayPainter({required this.progress, required this.color});
+
+  final double progress;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final maxRadius = size.width / 2;
+    const rayCount = 10;
+
+    for (var i = 0; i < rayCount; i++) {
+      final angle = (i / rayCount) * 2 * math.pi;
+      final rayLength = maxRadius * (0.4 + 0.6 * progress);
+      final rayWidth = 10.0 * (1 - progress * 0.4);
+
+      final path = Path();
+      final tip = Offset(
+        center.dx + math.cos(angle) * rayLength,
+        center.dy + math.sin(angle) * rayLength,
+      );
+      final perpAngle = angle + math.pi / 2;
+      final base1 = Offset(
+        center.dx + math.cos(perpAngle) * rayWidth,
+        center.dy + math.sin(perpAngle) * rayWidth,
+      );
+      final base2 = Offset(
+        center.dx - math.cos(perpAngle) * rayWidth,
+        center.dy - math.sin(perpAngle) * rayWidth,
+      );
+
+      path.moveTo(base1.dx, base1.dy);
+      path.lineTo(tip.dx, tip.dy);
+      path.lineTo(base2.dx, base2.dy);
+      path.close();
+
+      final paint = Paint()
+        ..color = color.withValues(alpha: (1 - progress) * 0.35)
+        ..style = PaintingStyle.fill;
+
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LightRayPainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }
 

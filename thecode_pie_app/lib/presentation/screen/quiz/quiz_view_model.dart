@@ -159,6 +159,7 @@ class QuizViewModel extends ChangeNotifier {
           stageNo: stageNo,
         );
         if (hasAccess) {
+          _errorMessage = null; // 성공 시 이전에 남아있을 수 있는 에러 메시지 제거
           return true;
         }
         if (attempt < attempts - 1) {
@@ -190,20 +191,49 @@ class QuizViewModel extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    const totalStageCount = 50; // TODO: AppConstants로 중앙화 권장
+
     try {
       final start = await _getStartStageUseCase();
+
+      final localClearedStageNo = await ProgressStorage.getLastClearedStageNo(
+        episodeId: start.episodeId,
+      );
+
+      // "서버가 마지막 스테이지에서 다음으로 안 넘어가는" 특수 케이스에서만
+      // 로컬 클리어 기록으로 보정한다. 서버가 그보다 낮은 값을 주면
+      // (예: 관리자가 진행도를 되돌린 경우) 무조건 서버 값을 그대로 신뢰한다.
+      final isServerStuckAtLastStage = start.stageNo >= totalStageCount;
+      final wasFinalStageClearedLocally =
+          localClearedStageNo >= totalStageCount;
+
+      final resolvedStart =
+          isServerStuckAtLastStage && wasFinalStageClearedLocally
+          ? StartStageModel(
+              episodeId: start.episodeId,
+              episodeCode: start.episodeCode,
+              stageNo: totalStageCount + 1,
+              highestStageNo: totalStageCount + 1,
+            )
+          : start;
+
       await ProgressStorage.saveLastProgress(
-        episodeId: start.episodeId,
-        stageNo: start.stageNo,
+        episodeId: resolvedStart.episodeId,
+        stageNo: resolvedStart.stageNo,
       );
+      // 서버 값(또는 위에서 보정된 값)을 로컬 캐시에도 그대로 덮어써서
+      // 캐시가 서버와 어긋난 채로 남지 않게 한다.
       await ProgressStorage.setLastClearedStageNo(
-        episodeId: start.episodeId,
-        stageNo: start.stageNo > 1 ? start.stageNo - 1 : 0,
+        episodeId: resolvedStart.episodeId,
+        stageNo: resolvedStart.stageNo > 1 ? resolvedStart.stageNo - 1 : 0,
       );
+
       debugPrint(
-        '[QuizVM] using server start episodeId=${start.episodeId} episodeCode=${start.episodeCode} stageNo=${start.stageNo}',
+        '[QuizVM] resolved start episodeId=${resolvedStart.episodeId} '
+        'stageNo=${resolvedStart.stageNo} (server=${start.stageNo}, '
+        'localCleared=$localClearedStageNo)',
       );
-      return start;
+      return resolvedStart;
     } catch (e) {
       _errorMessage = e.toString();
       rethrow;

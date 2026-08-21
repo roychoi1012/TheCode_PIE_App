@@ -19,7 +19,7 @@ class BackgroundMusicService {
     android: const AudioContextAndroid(
       contentType: AndroidContentType.music,
       usageType: AndroidUsageType.media,
-      audioFocus: AndroidAudioFocus.none,
+      audioFocus: AndroidAudioFocus.gain, // none → gain으로 변경
     ),
   );
 

@@ -6,6 +6,9 @@ class AppConstants {
   static const String appName = 'The Code ARC';
   static const String appVersion = '1.0.0';
 
+  /// 사업자번호 발급 전까지 false로 두고, 발급되면 true로 바꾸면 됨.
+  static const bool inAppPurchaseEnabled = false;
+
   // Google OAuth 설정 (환경변수에서 읽기)
   static String get googleServerClientId =>
       dotenv.env['SERVER_CLIENT_ID'] ?? '';

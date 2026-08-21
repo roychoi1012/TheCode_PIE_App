@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:thecode_pie_app/core/services/background_music_service.dart';
 
 import '../config/ad_config.g.dart';
 
@@ -42,6 +43,8 @@ class AdManagerService {
     debugPrint(
       '[AdManager] loading rewarded ad episode=$episodeCode stage=$stageNo',
     );
+    debugPrint('[AdManager] using adUnitId=$adUnitId'); // ← 이 줄 추가
+
     RewardedAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
@@ -84,9 +87,12 @@ class AdManagerService {
     }
 
     _rewardedAd = null;
+    BackgroundMusicService().pause(); // 광고 시작 전 배경음 정지
+
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
+        BackgroundMusicService().play(); // 광고 닫히면 배경음 재개
         _reloadLastRewardedAd();
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
@@ -96,6 +102,7 @@ class AdManagerService {
           'message=${error.message}',
         );
         ad.dispose();
+        BackgroundMusicService().play(); // 표시 실패 시에도 재개
         _reloadLastRewardedAd();
       },
     );

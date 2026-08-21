@@ -6,6 +6,7 @@ class AppColors {
   static const Color sage = Color(0xFF8AA8A1);
   static const Color lavender = Color(0xFFCBCBD4);
   static const Color crust = Color(0xFFD1B490);
+  static const Color yellow = Color(0xFFE0B84A);
 
   static const Color darkBackground = pumpkin;
   static const Color darkBackgroundSecondary = pumpkin;

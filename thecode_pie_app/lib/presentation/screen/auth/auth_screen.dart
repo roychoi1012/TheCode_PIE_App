@@ -6,6 +6,7 @@ import 'package:thecode_pie_app/core/constants/app_constants.dart';
 import 'package:thecode_pie_app/core/constants/app_fonts.dart';
 import 'package:thecode_pie_app/core/services/sound_effects_service.dart';
 import 'package:thecode_pie_app/presentation/component/google_login_button.dart';
+import 'package:thecode_pie_app/presentation/component/loading_transition_screen.dart';
 import 'package:thecode_pie_app/presentation/component/retro_background.dart';
 import 'package:thecode_pie_app/presentation/component/settings_button.dart';
 import 'package:thecode_pie_app/presentation/purchase/purchase_view_model.dart';
@@ -214,6 +215,8 @@ class LoginScreen extends StatelessWidget {
     await context.read<PurchaseViewModel>().syncEntitlements();
   }
 
+  static const int _totalStageCount = 50; // StageSelectScreen과 동일한 총 스테이지 수
+
   Future<void> _handleStartButton(
     BuildContext context,
     AuthViewModel viewModel,
@@ -222,6 +225,22 @@ class LoginScreen extends StatelessWidget {
       final quizViewModel = Provider.of<QuizViewModel>(context, listen: false);
       final start = await quizViewModel.resolveStartProgress();
       if (!context.mounted) return;
+
+      // 이미 모든 스테이지를 클리어한 경우 (다음 스테이지가 총 개수를 초과)
+      // → 퀴즈 화면 대신 스테이지 선택 화면으로 이동
+      if (start.stageNo > _totalStageCount) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => StageSelectScreen(
+              episodeId: start.episodeId,
+              episodeCode: start.episodeCode,
+              currentStageNo: start.stageNo,
+              highestStageNo: start.highestStageNo ?? start.stageNo,
+            ),
+          ),
+        );
+        return;
+      }
 
       Navigator.of(context).push(
         MaterialPageRoute(

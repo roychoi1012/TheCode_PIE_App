@@ -21,7 +21,7 @@ migrate_working_dir/
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
-#.vscode/
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -54,6 +54,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Android build reports/output (auto-generated on every build)
+/android/build/
+/android/app/build/
+
 # Environment variables
 .env
 .env.local
@@ -68,3 +72,16 @@ app.*.map.json
 
 # Release artifacts
 /releases/*.aab
+
+# Firebase config (contains API keys — do not commit if repo is public)
+android/app/google-services.json
+
+# 플랫폼 자동 생성 파일 (해당 플랫폼 안 쓰는 경우, 빌드 때마다 재생성됨)
+linux/flutter/generated_plugin_registrant.cc
+linux/flutter/generated_plugins.cmake
+macos/Flutter/GeneratedPluginRegistrant.swift
+windows/flutter/generated_plugin_registrant.cc
+windows/flutter/generated_plugins.cmake
+
+# 개발 환경/로그 파일
+flutter_log.txt

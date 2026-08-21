@@ -3,7 +3,7 @@ description: "A new Flutter project."
 
 publish_to: "none"
 
-version: 1.0.0+1
+version: 1.0.0+7
 
 environment:
   sdk: ^3.9.2
@@ -23,6 +23,8 @@ dependencies:
   audioplayers: ^6.1.0
   google_mobile_ads: ^7.0.0
   in_app_purchase: ^3.3.0
+  lottie: ^3.3.3
+  url_launcher: ^6.3.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -37,6 +39,7 @@ flutter:
     - assets/audio/
     - assets/audio/bgm/
     - assets/audio/sfx/
+    - assets/animation/
 
   fonts:
     - family: Cafe24Supermagic

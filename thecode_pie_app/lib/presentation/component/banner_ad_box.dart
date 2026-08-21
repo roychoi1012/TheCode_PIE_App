@@ -63,15 +63,25 @@ class _BannerAdBoxState extends State<BannerAdBox> {
 
   Future<void> _loadAd() async {
     final adUnitId = _bannerUnitId;
-    if (adUnitId.isEmpty) return;
+    debugPrint('[BannerAdBox] adUnitId=$adUnitId'); // 추가
+    if (adUnitId.isEmpty) {
+      debugPrint('[BannerAdBox] adUnitId is empty, aborting'); // 추가
+      return;
+    }
 
     final requestWidth = widget.width.truncate();
-    if (requestWidth <= 0) return;
+    debugPrint('[BannerAdBox] requestWidth=$requestWidth'); // 추가
+    if (requestWidth <= 0) {
+      debugPrint('[BannerAdBox] requestWidth <= 0, aborting'); // 추가
+      return;
+    }
 
     final size = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
       requestWidth,
     );
+    debugPrint('[BannerAdBox] size=$size'); // 추가
     if (!mounted || size == null || widget.width.truncate() != requestWidth) {
+      debugPrint('[BannerAdBox] size null or width mismatch, aborting'); // 추가
       return;
     }
 
@@ -83,6 +93,7 @@ class _BannerAdBoxState extends State<BannerAdBox> {
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (ad) {
+          debugPrint('[BannerAdBox] onAdLoaded fired'); // 추가
           if (!mounted || widget.width.truncate() != requestWidth) {
             ad.dispose();
             return;
@@ -103,6 +114,7 @@ class _BannerAdBoxState extends State<BannerAdBox> {
       ),
     );
 
+    debugPrint('[BannerAdBox] calling ad.load()'); // 추가
     ad.load();
   }
 
